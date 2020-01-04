@@ -1,0 +1,26 @@
+cabal-version: 1.12
+
+name:           croe-common
+version:        0.1.0.0
+synopsis:       croe common
+description:    Please see the README on GitLab at <https://code.byted.org/fengzelin.isumi/weekly-report/blob/master/README.md>
+category:       Web
+author:         fengzelin.isumi
+maintainer:     fengzelin.isumi@bytedance.com
+copyright:      2019 fengzelin.isumi
+license:        BSD3
+build-type:     Simple
+
+library
+  exposed-modules:
+    CROE.Common.Util
+    CROE.Common.API
+  hs-source-dirs: src
+  build-depends:
+      base
+    , servant
+    , text
+    , time
+    , aeson
+    , lens
+  default-language: Haskell2010

@@ -1,0 +1,5 @@
+.stack-work/
+/output/
+/local_scripts/
+/backend/*.cabal
+dist-newstyle/

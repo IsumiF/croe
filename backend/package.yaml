@@ -1,0 +1,70 @@
+name:                croe-backend
+version:             0.1.0.0
+license:             BSD3
+author:              "fengzelin.isumi"
+maintainer:          "fengzelin.isumi@bytedance.com"
+copyright:           "2019 fengzelin.isumi"
+synopsis:            croe backend
+category:            Web
+description:         Please see the README on GitLab at <https://code.byted.org/fengzelin.isumi/weekly-report/blob/master/README.md>
+
+ghc-options: -Wall
+
+dependencies:
+- base >= 4.7 && < 5
+
+library:
+  source-dirs: src
+  dependencies:
+  - aeson
+  - bytestring
+  - containers
+  - croe-common
+  - file-embed
+  - http-client
+  - http-client-tls
+  - http-types
+  - lens
+  - monad-control
+  - monad-logger
+  - mtl
+  - pandoc
+  - pandoc-types
+  - persistent
+  - persistent-mysql
+  - resource-pool
+  - servant
+  - servant-client
+  - servant-server
+  - string-interpolate
+  - text
+  - time
+  - optparse-applicative
+  - transformers
+  - unliftio-core
+  - unordered-containers
+  - wai-cors
+  - warp
+  - warp-tls
+
+executables:
+  backend-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - croe-backend
+
+tests:
+  backend-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - croe-backend
