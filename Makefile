@@ -26,3 +26,6 @@ clean:
 
 deploy:
 	./local_scripts/deploy.sh
+
+count:
+	tokei --exclude reflex-platform/
