@@ -11,10 +11,7 @@ build-type:     Simple
 
 library
   exposed-modules:
-      EI.WeeklyReport.Frontend.Main
-      FrontendUtils.JSM
-      FrontendUtils.JSM.Types
-      FrontendUtils.Component.Button
+      CROE.Frontend.Main
   hs-source-dirs:
       src
   default-extensions: OverloadedStrings OverloadedLists
@@ -32,19 +29,19 @@ library
     , text
     , time
     , unliftio-core
-  if impl(ghcjs)
-    other-modules:
-        FrontendUtils.JSM.GHCJS
-  else
-    other-modules:
-        FrontendUtils.JSM.Warp
-    build-depends:
-        filepath
-      , jsaddle-warp
-      , wai
-      , wai-app-static
-      , warp
-      , websockets
+  -- if impl(ghcjs)
+  --   other-modules:
+  --       FrontendUtils.JSM.GHCJS
+  -- else
+  --   other-modules:
+  --       FrontendUtils.JSM.Warp
+  --   build-depends:
+  --       filepath
+  --     , jsaddle-warp
+  --     , wai
+  --     , wai-app-static
+  --     , warp
+  --     , websockets
   default-language: Haskell2010
 
 executable frontend-exe

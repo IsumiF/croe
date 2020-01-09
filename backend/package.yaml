@@ -20,6 +20,7 @@ library:
   - bytestring
   - containers
   - croe-common
+  - cryptonite
   - file-embed
   - http-client
   - http-client-tls
@@ -28,10 +29,12 @@ library:
   - monad-control
   - monad-logger
   - mtl
+  - optparse-applicative
   - pandoc
   - pandoc-types
   - persistent
   - persistent-mysql
+  - persistent-template
   - resource-pool
   - servant
   - servant-client
@@ -39,7 +42,6 @@ library:
   - string-interpolate
   - text
   - time
-  - optparse-applicative
   - transformers
   - unliftio-core
   - unordered-containers
@@ -48,7 +50,7 @@ library:
   - warp-tls
 
 executables:
-  backend-exe:
+  croe-backend-exe:
     main:                Main.hs
     source-dirs:         app
     ghc-options:
@@ -59,7 +61,7 @@ executables:
     - croe-backend
 
 tests:
-  backend-test:
+  croe-backend-test:
     main:                Spec.hs
     source-dirs:         test
     ghc-options:

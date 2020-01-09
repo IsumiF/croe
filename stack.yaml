@@ -1,40 +1,31 @@
-resolver: lts-14.16
+resolver: lts-14.20
 packages:
 - backend
 - frontend
 - common
 extra-deps:
-- QuickCheck-2.12.6.1
+- reflex-0.6.3
+- reflex-dom-0.5.3
+- reflex-dom-core-0.5.3
+- ghcjs-dom-0.9.4.0
+- ghcjs-dom-jsaddle-0.9.4.0
+- jsaddle-0.9.7.0
+- jsaddle-dom-0.9.4.0
 - bimap-0.3.3
-- constraints-extras-0.3.0.2
-- cookie-0.4.4
 - dependent-map-0.3
 - dependent-sum-0.6.2.0
 - dependent-sum-template-0.1.0.0
-- ghcjs-dom-0.9.4.0
-- ghcjs-dom-jsaddle-0.9.4.0
-- http-api-data-0.4
-- http-media-0.7.1.3
-- jsaddle-0.9.6.0
-- jsaddle-dom-0.9.3.2
-- monoidal-containers-0.6
+- constraints-extras-0.3.0.2
 - ref-tf-0.4.0.2
-- reflex-0.6.2.4
-- reflex-dom-0.5.2.0
-- reflex-dom-core-0.5.2.0
-- servant-0.15
-- servant-client-0.15
-- servant-client-core-0.15
-- servant-server-0.15
-- singleton-bool-0.1.4
+- monoidal-containers-0.6.0.1
 - witherable-0.3.1
 - zenc-0.1.1
 - git: https://github.com/isumif/servant-reflex.git
-  commit: 5a81583863555ecac49a92a82b95041233fad1ac
+  commit: 618dc840fda8b790ac450c097f5b3a5b3148aeea
 - git: https://github.com/reflex-frp/reflex-dom-contrib.git
   commit: b9e2965dff062a4e13140f66d487362a34fe58b3
 - git: https://github.com/IsumiF/jsaddle-warp
-  commit: 17d75f44faf9e9840f924ff207728532ec156749
+  commit: 6b4ccbdb330b56bb2171c665e02bef388df458bb
 flags:
   reflex-dom:
     use-warp: true

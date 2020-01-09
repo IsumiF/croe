@@ -2,4 +2,4 @@ module Main
   ( main
   ) where
 
-import EI.WeeklyReport.Frontend.Main (main)
+import           CROE.Frontend.Main (main)

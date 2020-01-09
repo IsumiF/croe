@@ -7,38 +7,49 @@ module CROE.Backend.Web
   ) where
 
 import           Control.Monad.Except
+import           Control.Monad.IO.Class      (liftIO)
+import           Control.Monad.Reader
 import           Data.Proxy                  (Proxy (..))
+import qualified Data.Text.IO                as T
 import           Network.HTTP.Types
 import           Network.Wai.Middleware.Cors
 import           Servant
 
 import           CROE.Backend.Env
-import qualified CROE.Backend.Service        as Service
+import qualified CROE.Backend.Service.Auth   as Service
 import           CROE.Common.API
 
-handler :: ServerT APIWithStatic (ExceptT ServantErr App)
+type APIWithStatic = API :<|> Raw
+
+handler :: ServerT APIWithStatic (ExceptT ServerError App)
 handler = apiHandler :<|> serveDirectoryWebApp "static/"
 
-apiHandler :: ServerT API (ExceptT ServantErr App)
-apiHandler = Service.login
+apiHandler :: ServerT API (ExceptT ServerError App)
+apiHandler = (\_ _ -> pure "hello") :<|> (\(Just email) -> liftIO (T.putStrLn email) >> pure NoContent)
 
-toRawHandler :: Env -> ExceptT ServantErr App a -> Handler a
+toRawHandler :: Env -> ExceptT ServerError App a -> Handler a
 toRawHandler env appE = Handler $ do
     let app = runExceptT appE
     ExceptT $ runApp env app
 
 standardHandler :: Env -> Server APIWithStatic
-standardHandler env = hoistServer apiProxy (toRawHandler env) handler
+standardHandler env =
+    hoistServerWithContext
+      apiProxy
+      (Proxy :: Proxy '[BasicAuthCheck User])
+      (toRawHandler env)
+      handler
 
 mkWebApp :: Env -> Application
 mkWebApp env = cors (const (Just corsPolicy)) app
   where
-    app = serve apiProxy (standardHandler env)
-
-type APIWithStatic = API :<|> Raw
+    app = serveWithContext apiProxy (context env) (standardHandler env)
 
 apiProxy :: Proxy APIWithStatic
 apiProxy = Proxy
+
+context :: Env -> Context (BasicAuthCheck User ': '[])
+context env = BasicAuthCheck (\x -> runReaderT (Service.checkBasicAuth x) env) :. EmptyContext
 
 corsPolicy :: CorsResourcePolicy
 corsPolicy =

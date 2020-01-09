@@ -15,12 +15,14 @@ library
   exposed-modules:
     CROE.Common.Util
     CROE.Common.API
+    CROE.Common.API.Public
+    CROE.Common.API.Private
   hs-source-dirs: src
   build-depends:
       base
+    , aeson
+    , lens
     , servant
     , text
     , time
-    , aeson
-    , lens
   default-language: Haskell2010

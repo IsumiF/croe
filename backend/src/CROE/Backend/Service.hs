@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module CROE.Backend.Service
-  ( login
+  ( 
   ) where
 
 import           Control.Monad.Except
@@ -11,7 +11,7 @@ import           Servant
 
 import           CROE.Common.API
 
-login :: (MonadError ServantErr m)
-      => UserCredential
-      -> m Text
-login _ = pure "jwt token"
+-- login :: (MonadError ServerError m)
+--       => 
+--       -> m Text
+-- login _ = pure "jwt token"
