@@ -3,6 +3,7 @@ packages:
 - backend
 - frontend
 - common
+- reflex-dom-bulma
 extra-deps:
 - reflex-0.6.3
 - reflex-dom-0.5.3
@@ -21,7 +22,7 @@ extra-deps:
 - witherable-0.3.1
 - zenc-0.1.1
 - git: https://github.com/isumif/servant-reflex.git
-  commit: 618dc840fda8b790ac450c097f5b3a5b3148aeea
+  commit: 0f29197c52b82418685765d61c784da9422dbbad
 - git: https://github.com/reflex-frp/reflex-dom-contrib.git
   commit: b9e2965dff062a4e13140f66d487362a34fe58b3
 - git: https://github.com/IsumiF/jsaddle-warp

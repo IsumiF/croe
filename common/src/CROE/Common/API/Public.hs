@@ -3,6 +3,7 @@
 
 module CROE.Common.API.Public
   ( API
+  , APIRegister
   ) where
 
 import           Data.Text   (Text)

@@ -18,7 +18,7 @@ frontend:
 	mkdir -p output/temp/
 	# build and copy GHCJS generated files
 	nix-build -o output/temp/frontend -A ghcjs.croe-frontend
-	cp -rf output/temp/frontend/bin/frontend-exe.jsexe/* output/static/
+	cp -rf output/temp/frontend/bin/croe-frontend-exe.jsexe/* output/static/
 	# build CSS and copy other static files
 	frontend/sass/build.sh
 	cp -rf frontend/static/* output/static/

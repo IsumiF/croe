@@ -14,9 +14,9 @@ import           Servant.API
 
 import           CROE.Common.Util (aesonOptions)
 
-type API = "private" :> BasicAuth "croe-priavte" User :> APIUserProfile
+type API = "private" :> BasicAuth "croe-priavte" User :> APIPutUserProfile
 
-type APIUserProfile = "users" :> "profile"
+type APIPutUserProfile = "users" :> "profile"
   :> ReqBody '[JSON] User :> Put '[JSON] Text
 
 data User = User
