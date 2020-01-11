@@ -1,4 +1,5 @@
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module CROE.Backend.Service.Auth
   ( checkBasicAuth
@@ -14,10 +15,11 @@ import           CROE.Backend.Persist.Class
 import qualified CROE.Common.API            as Common
 
 checkBasicAuth :: (MonadPersist backend m, ReadEntity User (ReaderT backend m))
-               => BasicAuthData
+               => Proxy backend
+               -> BasicAuthData
                -> m (BasicAuthResult Common.User)
-checkBasicAuth (BasicAuthData email password) = do
-    entity' <- withConn $ getBy $ UniqueUserEmail (T.decodeUtf8 email)
+checkBasicAuth p (BasicAuthData email password) = do
+    entity' <- withConn p $ getBy $ UniqueUserEmail (T.decodeUtf8 email)
     case entity' of
       Nothing     -> pure NoSuchUser
       Just entity -> pure $

@@ -2,27 +2,26 @@ all: build
 .PHONY: all
 
 build: backend frontend
-	mkdir -p output/static/
-
-	cp -rf output/backend/bin output/
-	cp -rf output/backend/config output/
-	chmod -R 777 output/bin
-	cp -rf output/frontend/bin/frontend-exe.jsexe/* output/static/
-	cp -rf frontend/static/* output/static/
-	chmod -R 777 output/static
-	rm -rf output/backend
-	rm -rf output/frontend
 .PHONY: build
 
 backend:
-	mkdir -p output/backend/bin
+	mkdir -p output/bin
+	# build and copy server binary
 	stack build croe-backend
-	cp -rf `stack path --local-install-root`/bin/backend-exe output/backend/bin/croe
-	cp -rf backend/config output/backend/
+	cp -rf `stack path --local-install-root`/bin/backend-exe output/bin/croe
+	# copy config dir
+	cp -rf backend/config output/
 .PHONY: backend
 
 frontend:
-	nix-build -o output/frontend -A ghcjs.croe-frontend
+	mkdir -p output/static/
+	mkdir -p output/temp/
+	# build and copy GHCJS generated files
+	nix-build -o output/temp/frontend -A ghcjs.croe-frontend
+	cp -rf output/temp/frontend/bin/frontend-exe.jsexe/* output/static/
+	# build CSS and copy other static files
+	frontend/sass/build.sh
+	cp -rf frontend/static/* output/static/
 .PHONY: frontend
 
 clean:
@@ -32,4 +31,4 @@ deploy:
 	./local_scripts/deploy.sh
 
 count:
-	tokei --exclude reflex-platform/
+	tokei --exclude reflex-platform --exclude frontend/sass/bulma --exclude frontend/static
