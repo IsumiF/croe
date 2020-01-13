@@ -21,17 +21,20 @@ import qualified Data.Text                 as T
 import           GHC.Generics              (Generic)
 
 import qualified CROE.Backend.Logger       as Logger
+import qualified CROE.Backend.Mail.Init    as Mail
 import qualified CROE.Backend.Persist.Base as Persist
 import           CROE.Common.Util          (aesonOptions)
 
 data Env = Env
   { _env_persist :: Persist.Env
   , _env_logger  :: Logger.Env
+  , _env_mail    :: Mail.Env
   }
 
 data Config = Config
   { _config_persist :: Persist.Config
   , _config_logger  :: Logger.Config
+  , _config_mail    :: Mail.Config
   } deriving Generic
 
 readConfig :: ByteString -> Either Text Config
@@ -45,7 +48,8 @@ withEnv c f =
     Logger.withEnv (_config_logger c) $ \_env_logger ->
     Logger.runLoggingT _env_logger $
     Persist.withEnv (_config_persist c) $ \_env_persist ->
-      let env = Env{..}
+      let _env_mail = Mail.newEnv (_config_mail c)
+          env = Env{..}
        in liftIO (f env)
 
 type App = ReaderT Env (LoggingT IO)
@@ -58,3 +62,6 @@ instance Logger.HasEnv Env where
 
 instance Persist.HasEnv Env where
   getEnv = _env_persist
+
+instance Mail.HasEnv Env where
+  getEnv = _env_mail

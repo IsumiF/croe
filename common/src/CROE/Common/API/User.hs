@@ -2,7 +2,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE TypeOperators #-}
 
-module CROE.Common.API.Private
+module CROE.Common.API.User
   ( API
   , User(..)
   ) where
@@ -14,10 +14,15 @@ import           Servant.API
 
 import           CROE.Common.Util (aesonOptions)
 
-type API = "private" :> BasicAuth "croe-priavte" User :> APIPutUserProfile
+type API = "user" :>
+  ( BasicAuth "croe" User :> APIPutProfile
+  :<|> APIRegister
+  )
 
-type APIPutUserProfile = "users" :> "profile"
+type APIPutProfile = "profile"
   :> ReqBody '[JSON] User :> Put '[JSON] Text
+
+type APIRegister = "register" :> QueryParam "email" Text :> Post '[JSON] NoContent
 
 data User = User
   { _user_email :: Text

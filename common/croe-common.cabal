@@ -15,8 +15,7 @@ library
   exposed-modules:
     CROE.Common.Util
     CROE.Common.API
-    CROE.Common.API.Public
-    CROE.Common.API.Private
+    CROE.Common.API.User
   hs-source-dirs: src
   build-depends:
       base

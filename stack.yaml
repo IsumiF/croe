@@ -27,6 +27,10 @@ extra-deps:
   commit: b9e2965dff062a4e13140f66d487362a34fe58b3
 - git: https://github.com/IsumiF/jsaddle-warp
   commit: 6b4ccbdb330b56bb2171c665e02bef388df458bb
+# - smtp-mail-0.2.0.0
+- HaskellNet-SSL-0.3.4.1
+- HaskellNet-0.5.1
 flags:
   reflex-dom:
     use-warp: true
+allow-newer: true

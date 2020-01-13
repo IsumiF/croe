@@ -3,11 +3,13 @@
 
 module CROE.Backend.Main
   ( main
+  , mainWithArgs
+  , CmdArgs(..)
   ) where
 
 import qualified Data.ByteString          as BS
 import qualified Data.Text.IO             as T
-import           Network.Wai.Handler.Warp (Port, run)
+import           Network.Wai.Handler.Warp (Port, runEnv)
 import           Options.Applicative
 
 import           CROE.Backend.Env
@@ -52,4 +54,4 @@ mainWithArgs CmdArgs{..} = do
       Left errMsg  -> T.putStrLn $ "config file format error: " <> errMsg
       Right config -> withEnv config $ \env -> do
         let webApp = mkWebApp env
-        run confPort webApp
+        runEnv confPort webApp

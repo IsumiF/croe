@@ -158,6 +158,20 @@ packages:
   original:
     git: https://github.com/IsumiF/jsaddle-warp
     commit: 6b4ccbdb330b56bb2171c665e02bef388df458bb
+- completed:
+    hackage: HaskellNet-SSL-0.3.4.1@sha256:3ca14dd69460a380cf69aed40654fb10c4c03e344632b6a9986568c87feda157,1843
+    pantry-tree:
+      size: 577
+      sha256: 33fbfd0d8bbaa689f0169d442861dafcdcd4fe795a4b42aa0bedbfa41aa65b23
+  original:
+    hackage: HaskellNet-SSL-0.3.4.1
+- completed:
+    hackage: HaskellNet-0.5.1@sha256:53f2cfffb140740691296f905a70143c859b571eea3f5cf5f7a4642851d9e38a,1584
+    pantry-tree:
+      size: 1437
+      sha256: e0806ea13b946dfc785bf9580e126cfcb8d3c6f21e1fbe313374745c3a8a8b99
+  original:
+    hackage: HaskellNet-0.5.1
 snapshots:
 - completed:
     size: 524154

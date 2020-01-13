@@ -14,7 +14,9 @@ library
       CROE.Frontend.Main
       CROE.Frontend.Env
       CROE.Frontend.Env.TH
-      CROE.Frontend.Client.Base
+      CROE.Frontend.Client.Init
+      CROE.Frontend.Client.Internal
+      CROE.Frontend.Client.Class.User
       CROE.Frontend.User.Base
       CROE.Frontend.User.Class
       CROE.Frontend.Widget
