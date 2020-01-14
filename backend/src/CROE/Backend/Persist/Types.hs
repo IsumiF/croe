@@ -13,6 +13,8 @@ module CROE.Backend.Persist.Types
   ( User(..)
   , Role(..)
   , UserId
+  , UserRegistry(..)
+  , UserRegistryId
   , EntityField(..)
   , migrateAll
   , Unique(UniqueUserEmail)
@@ -20,6 +22,7 @@ module CROE.Backend.Persist.Types
 
 import           Data.ByteString                 (ByteString)
 import           Data.Text                       (Text)
+import           Data.Time
 import           Database.Persist
 import           Database.Persist.TH
 
@@ -32,5 +35,10 @@ User
   hashedPassword ByteString
   role Role
   UniqueUserEmail email
+  deriving Show
+UserRegistry
+  email Text
+  createdAt UTCTime
+  code Text
   deriving Show
 |]

@@ -16,6 +16,8 @@ dependencies:
 library:
   source-dirs: src
   dependencies:
+    - HaskellNet-SSL
+    - MonadRandom
     - aeson
     - bytestring
     - containers
@@ -39,11 +41,11 @@ library:
     - servant
     - servant-client
     - servant-server
-    - HaskellNet-SSL
     - string-interpolate
     - text
     - time
     - transformers
+    - transformers-base
     - unliftio-core
     - unordered-containers
     - wai-cors

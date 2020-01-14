@@ -12,9 +12,10 @@ module CROE.Backend.Persist.Base
   , Env
   , withEnv
   , HasEnv(..)
-  , backend
+  , proxy
   ) where
 
+import           Control.Monad.Base
 import           Control.Monad.Except
 import           Control.Monad.IO.Unlift
 import           Control.Monad.Logger
@@ -22,7 +23,7 @@ import           Control.Monad.Reader
 import           Control.Monad.Trans.Control (MonadBaseControl)
 import           Data.Aeson
 import           Data.Pool                   (withResource)
-import           Data.Proxy                  (Proxy(..))
+import           Data.Proxy                  (Proxy (..))
 import           Data.Word                   (Word16)
 import           Database.Persist.MySQL
 import           GHC.Generics                (Generic)
@@ -36,8 +37,10 @@ class Monad m => MonadPersist backend m where
 instance (HasEnv r, MonadBaseControl IO m) => MonadPersist SqlBackend (ReaderT r m) where
   withConn _ m = do
     (Env pool) <- asks getEnv
-    withResource pool $ \conn ->
-      runReaderT m conn
+    withResource pool $ \conn -> do
+      x <- runReaderT m conn
+      liftBase (runReaderT transactionSave conn)
+      pure x
 
 instance (MonadPersist backend m) => MonadPersist backend (ExceptT e m) where
   withConn p m = do
@@ -87,5 +90,5 @@ withEnv config f =
       }
     numConns = _config_numConns config
 
-backend :: Proxy SqlBackend
-backend = Proxy
+proxy :: Proxy SqlBackend
+proxy = Proxy

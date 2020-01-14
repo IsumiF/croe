@@ -16,10 +16,11 @@ import           CROE.Common.API.User
 spec :: SpecWith Server
 spec =
     describe "register" $
-      it "returns 200" $ \server -> do
-        r <- runClientM (register (Just "steven172307@gmail.com")) (_server_clientEnv server)
+      it "apply verification code" $ \server -> do
+        r <- runClientM (applyCode (Just "steven172307@gmail.com")) (_server_clientEnv server)
         r `shouldBe` Right NoContent
 
-register :: Maybe Text -> ClientM NoContent
-putProfile :: BasicAuthData -> User -> ClientM Text
-putProfile :<|> register = client (Proxy :: Proxy API)
+putProfile :: BasicAuthData -> User -> ClientM NoContent
+applyCode :: Maybe Text -> ClientM NoContent
+register :: RegisterForm -> ClientM NoContent
+putProfile :<|> applyCode :<|> register = client (Proxy :: Proxy API)

@@ -13,8 +13,8 @@ import           Network.HTTP.Types
 import           Network.Wai.Middleware.Cors
 import           Servant
 
-import           CROE.Backend.Persist.Base (backend)
 import           CROE.Backend.Env
+import           CROE.Backend.Persist.Base   (proxy)
 import qualified CROE.Backend.Service.Auth   as Service
 import           CROE.Backend.Web.ApiHandler
 import           CROE.Common.API
@@ -46,7 +46,7 @@ apiProxy :: Proxy APIWithStatic
 apiProxy = Proxy
 
 context :: Env -> Context (BasicAuthCheck User ': '[])
-context env = BasicAuthCheck (\x -> runReaderT (Service.checkBasicAuth backend x) env) :. EmptyContext
+context env = BasicAuthCheck (\x -> runReaderT (Service.checkBasicAuth proxy x) env) :. EmptyContext
 
 corsPolicy :: CorsResourcePolicy
 corsPolicy =

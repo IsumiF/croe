@@ -1,5 +1,5 @@
 {-# LANGUAGE DataKinds         #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeOperators     #-}
 
 module CROE.Backend.Web.ApiHandler
@@ -10,9 +10,12 @@ import           Control.Monad.Except
 import           Servant
 
 import           CROE.Backend.Env
-import           CROE.Backend.Persist.Base (backend)
+import           CROE.Backend.Persist.Base (proxy)
 import qualified CROE.Backend.Service.User as User
 import           CROE.Common.API
 
 apiHandler :: ServerT API (ExceptT ServerError App)
-apiHandler = (\_ _ -> pure "hello") :<|> User.register backend
+apiHandler =
+         User.putProfile proxy
+    :<|> User.applyCode proxy
+    :<|> User.register proxy

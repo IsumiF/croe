@@ -8,7 +8,7 @@ backend:
 	mkdir -p output/bin
 	# build and copy server binary
 	stack build croe-backend
-	cp -rf `stack path --local-install-root`/bin/backend-exe output/bin/croe
+	cp -rf `stack path --local-install-root`/bin/croe-backend-exe output/bin/croe
 	# copy config dir
 	cp -rf backend/config output/
 .PHONY: backend

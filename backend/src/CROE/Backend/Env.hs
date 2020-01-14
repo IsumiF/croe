@@ -1,5 +1,7 @@
-{-# LANGUAGE DeriveGeneric   #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE RecordWildCards   #-}
 
 module CROE.Backend.Env
   ( Env
@@ -10,20 +12,23 @@ module CROE.Backend.Env
   , runApp
   ) where
 
+import           Control.Monad.Except
 import           Control.Monad.Logger
+import           Control.Monad.Random.Class
 import           Control.Monad.Reader
+import qualified Crypto.Random              as Crypto
 import           Data.Aeson
 import           Data.Bifunctor
-import           Data.ByteString           (ByteString)
-import qualified Data.ByteString.Lazy      as LBS
-import           Data.Text                 (Text)
-import qualified Data.Text                 as T
-import           GHC.Generics              (Generic)
+import           Data.ByteString            (ByteString)
+import qualified Data.ByteString.Lazy       as LBS
+import           Data.Text                  (Text)
+import qualified Data.Text                  as T
+import           GHC.Generics               (Generic)
 
-import qualified CROE.Backend.Logger       as Logger
-import qualified CROE.Backend.Mail.Init    as Mail
-import qualified CROE.Backend.Persist.Base as Persist
-import           CROE.Common.Util          (aesonOptions)
+import qualified CROE.Backend.Logger        as Logger
+import qualified CROE.Backend.Mail.Init     as Mail
+import qualified CROE.Backend.Persist.Base  as Persist
+import           CROE.Common.Util           (aesonOptions)
 
 data Env = Env
   { _env_persist :: Persist.Env
@@ -65,3 +70,17 @@ instance Persist.HasEnv Env where
 
 instance Mail.HasEnv Env where
   getEnv = _env_mail
+
+-- Orphan Instances
+
+instance MonadRandom m => MonadRandom (LoggingT m) where
+  getRandomR r = lift $ getRandomR r
+  getRandom = lift getRandom
+  getRandomRs r = lift $ getRandomRs r
+  getRandoms = lift getRandoms
+
+instance MonadIO m => Crypto.MonadRandom (ReaderT r m) where
+  getRandomBytes n = liftIO $ Crypto.getRandomBytes n
+
+instance Crypto.MonadRandom m => Crypto.MonadRandom (ExceptT e m) where
+  getRandomBytes n = lift $ Crypto.getRandomBytes n
