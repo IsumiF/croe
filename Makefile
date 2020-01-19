@@ -13,6 +13,10 @@ backend:
 	cp -rf backend/config output/
 .PHONY: backend
 
+backend.ghcjs:
+	mkdir -p output/temp/
+	nix-build -o output/temp/backend -A ghc.croe-backend
+
 frontend:
 	mkdir -p output/static/
 	mkdir -p output/temp/
