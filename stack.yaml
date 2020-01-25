@@ -1,9 +1,9 @@
 resolver: lts-14.20
 packages:
-- backend
-- frontend
-- common
-- reflex-dom-bulma
+- ./backend
+- ./frontend
+- ./common
+- ./reflex-dom-bulma
 extra-deps:
 - reflex-0.6.3
 - reflex-dom-0.5.3

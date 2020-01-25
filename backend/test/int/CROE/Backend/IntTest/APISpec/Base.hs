@@ -1,7 +1,10 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module CROE.Backend.IntTest.APISpec.Base
   ( setupSpec
   , tearDownSpec
   , Server(..)
+  , _FailureResponse
   -- *reexport
   , client
   , runClientM
@@ -9,6 +12,7 @@ module CROE.Backend.IntTest.APISpec.Base
 
 import           Control.Concurrent  (ThreadId, forkIO, throwTo)
 import           Control.Exception   (AsyncException (UserInterrupt))
+import           Control.Lens
 import           Data.Maybe          (fromMaybe)
 import           Network.HTTP.Client (defaultManagerSettings, newManager)
 import           Network.Socket.Wait (wait)
@@ -43,3 +47,5 @@ clientEnvFromPort port = do
     pure $ mkClientEnv manager' baseUrl'
   where
     baseUrl' = BaseUrl Http "127.0.0.1" port "api"
+
+makePrisms ''ClientError

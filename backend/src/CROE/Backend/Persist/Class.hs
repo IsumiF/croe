@@ -19,12 +19,14 @@ import           CROE.Backend.Persist.Base  (MonadPersist (..))
 import           CROE.Backend.Persist.Types
 
 class Monad m => ReadEntity record m where
+  get :: Key record -> m (Maybe record)
   getBy :: Unique record -> m (Maybe (Entity record))
   selectFirst :: [Filter record] -> [SelectOpt record] -> m (Maybe (Entity record))
   selectList :: [Filter record] -> [SelectOpt record] -> m [Entity record]
 
 instance (MonadIO m, PersistEntity e, PersistEntityBackend e ~ SqlBackend)
   => ReadEntity e (ReaderT SqlBackend m) where
+  get = Persist.get
   getBy = Persist.getBy
   selectFirst = Persist.selectFirst
   selectList = Persist.selectList

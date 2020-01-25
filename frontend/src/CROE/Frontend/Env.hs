@@ -6,31 +6,33 @@
 module CROE.Frontend.Env
   ( AppT
   , newEnv
-  , Env
+  , Env(..)
+  , env_client
   ) where
 
+import           Control.Lens
 import           Control.Monad.Reader
 import           Data.Aeson
 import qualified Data.ByteString.Lazy      as LBS
 import           GHC.Generics              (Generic)
-import           Reflex.Dom
+import           Reflex.Dom                hiding (Client)
 
 import           CROE.Common.Util          (aesonOptions)
+import           CROE.Frontend.Client.Init (Client)
 import qualified CROE.Frontend.Client.Init as Client
 import           CROE.Frontend.Env.TH
-import qualified CROE.Frontend.User.Base   as User
 
-type AppT t m = ReaderT (Env t) m
+type AppT t m = ReaderT (Env t m) m
 
-data Env t = Env
-  { _env_client :: Client.Env
-  , _env_user   :: User.Env t
+newtype Env t m = Env
+  { _env_client :: Client t m
   } deriving Generic
 
-newEnv :: forall t m. MonadWidget t m => m (Env t)
+makeLenses ''Env
+
+newEnv :: forall t m. MonadWidget t m => m (Env t m)
 newEnv = do
-    _env_user <- User.newEnv
-    let _env_client = Client.newEnv (_config_client config')
+    let _env_client = Client.newClient (_config_client config')
     pure Env{..}
   where
     config' =
@@ -40,7 +42,7 @@ newEnv = do
 
 newtype Config = Config
   { _config_client :: Client.Config
-  } deriving Generic
+  } deriving (Generic, Show, Eq)
 
 instance FromJSON Config where
   parseJSON = genericParseJSON aesonOptions

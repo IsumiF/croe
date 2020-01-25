@@ -86,11 +86,13 @@ tests:
     build-tools: hspec-discover:hspec-discover
     dependencies:
       - croe-backend
-      - hspec
       - QuickCheck
-      - port-utils
-      - servant-client
-      - http-client
-      - text
-      - servant
       - croe-common
+      - hspec
+      - http-client
+      - lens
+      - port-utils
+      - servant
+      - servant-client
+      - text
+      - http-types

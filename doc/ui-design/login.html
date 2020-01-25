@@ -19,7 +19,12 @@
   <section class="section">
     <div class="container">
       <div class="modal is-active">
-        <div class="modal-background"></div>
+        <div class="modal-background">
+          <div class="notification is-primary is-light">
+            <button class="delete"></button>
+            用户名或密码错误
+          </div>
+        </div>
         <div class="modal-content">
           <div class="card">
             <div class="card-header">
@@ -42,7 +47,7 @@
               <div class="field">
                 <label class="label">密码</label>
                 <div class="control has-icons-left has-icons-right">
-                  <input class="input is-success" type="password" placeholder="密码">
+                  <input class="input" type="password" placeholder="密码">
                   <span class="icon is-small is-left">
                     <i class="fas fa-key"></i>
                   </span>
@@ -57,10 +62,8 @@
                 </div>
               </div>
               <div class="field">
-                <div class="container">
-                  <div class="control is-expanded">
-                    <button class="button is-success is-fullwidth is-rounded">注册或找回密码</button>
-                  </div>
+                <div class="control is-expanded">
+                  <button class="button is-success is-fullwidth is-rounded">注册或找回密码</button>
                 </div>
               </div>
             </div>

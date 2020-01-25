@@ -14,12 +14,14 @@ library
       CROE.Frontend.Main
       CROE.Frontend.Env
       CROE.Frontend.Env.TH
+      CROE.Frontend.Client
       CROE.Frontend.Client.Init
       CROE.Frontend.Client.Internal
-      CROE.Frontend.Client.Class.User
-      CROE.Frontend.User.Base
-      CROE.Frontend.User.Class
+      CROE.Frontend.Client.User
+      CROE.Frontend.User
       CROE.Frontend.Widget
+      CROE.Frontend.Widget.Entrance
+      CROE.Frontend.Widget.Notification
   hs-source-dirs:
       src
   default-extensions: OverloadedStrings OverloadedLists
@@ -30,6 +32,8 @@ library
     , aeson
     , bytestring
     , containers
+    , data-default
+    , email-validate
     , file-embed
     , jsaddle
     , jsaddle-dom
@@ -38,12 +42,14 @@ library
     , reflex
     , reflex-dom
     , reflex-dom-bulma
+    , reflex-dom-contrib
     , servant
     , servant-reflex
     , template-haskell
     , text
     , time
     , transformers
+    , uri-bytestring
   default-language: Haskell2010
 
 executable croe-frontend-exe

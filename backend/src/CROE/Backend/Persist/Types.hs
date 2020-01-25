@@ -15,6 +15,12 @@ module CROE.Backend.Persist.Types
   , UserId
   , UserRegistry(..)
   , UserRegistryId
+  , School(..)
+  , SchoolId
+  , SchoolDomain(..)
+  , SchoolDomainId
+  , SchoolCampus(..)
+  , SchoolCampusId
   , EntityField(..)
   , migrateAll
   , Unique(UniqueUserEmail)
@@ -40,5 +46,16 @@ UserRegistry
   email Text
   createdAt UTCTime
   code Text
+  deriving Show
+School
+  name Text
+  deriving Show
+SchoolDomain
+  schoolId SchoolId
+  domain Text
+  deriving Show
+SchoolCampus
+  schoolId SchoolId
+  name Text
   deriving Show
 |]

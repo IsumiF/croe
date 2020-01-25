@@ -13,10 +13,6 @@ backend:
 	cp -rf backend/config output/
 .PHONY: backend
 
-backend.ghcjs:
-	mkdir -p output/temp/
-	nix-build -o output/temp/backend -A ghc.croe-backend
-
 frontend:
 	mkdir -p output/static/
 	mkdir -p output/temp/
@@ -26,6 +22,12 @@ frontend:
 	# build CSS and copy other static files
 	frontend/sass/build.sh
 	cp -rf frontend/static/* output/static/
+	# optimize js output
+	cd output/static && google-closure-compiler --js=all.js \
+		--js_output_file all.min.js \
+		--compilation_level=ADVANCED_OPTIMIZATIONS \
+		--jscomp_off=checkVars \
+		--externs=all.js.externs
 .PHONY: frontend
 
 clean:

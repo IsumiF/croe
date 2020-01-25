@@ -4,3 +4,4 @@
 /backend/*.cabal
 dist-newstyle/
 /backend/config/
+.DS_store

@@ -4,8 +4,10 @@
 
 module CROE.Backend.Service.User
   ( putProfile
+  , getProfile
   , applyCode
   , register
+  , validateEmail
   -- *Inernal
   ) where
 
@@ -13,6 +15,7 @@ import           Control.Monad.Except
 import           Control.Monad.Logger
 import           Control.Monad.Random.Class
 import           Control.Monad.Reader
+import           Control.Monad.Trans.Maybe
 import qualified Crypto.KDF.BCrypt          as BCrypt
 import qualified Crypto.Random.Types        as Crypto
 import           Data.Function              ((&))
@@ -21,13 +24,14 @@ import           Data.Proxy                 (Proxy)
 import           Data.Text                  (Text)
 import qualified Data.Text                  as T
 import qualified Data.Text.Encoding         as T
-import           Database.Persist           ((=.), (==.))
+import           Database.Persist           (Entity (..), (=.), (==.))
 import           Servant
 
 import           CROE.Backend.Mail.Class
 import           CROE.Backend.Persist.Class
 import           CROE.Backend.Time.Class
 import qualified CROE.Common.API.User       as Common
+import qualified CROE.Common.User           as Common
 import           CROE.Common.Util           (utf8LBS)
 
 putProfile :: ( MonadError ServerError m
@@ -49,6 +53,12 @@ putProfile p authUser newUser = do
     pure NoContent
   where
     oldEmail = Common._user_email authUser
+
+getProfile :: Monad m
+           => Proxy backend
+           -> Common.User
+           -> m Common.User
+getProfile _ = pure
 
 applyCode :: ( MonadError ServerError m
              , MonadPersist backend m
@@ -92,6 +102,25 @@ register p (Common.RegisterForm user password code) = do
       createUser p (makeOrdinaryUser user) password
       pure NoContent
       )
+
+validateEmail :: ( MonadError ServerError m
+                 , MonadPersist backend m
+                 , ReadEntity School (ReaderT backend m)
+                 , ReadEntity SchoolDomain (ReaderT backend m)
+                 )
+              => Proxy backend
+              -> Common.EmailAddress
+              -> m Text -- ^school name
+validateEmail p email =
+    withConn p $ (nothingTo404 =<<) $ runMaybeT $ do
+      (Entity _ schoolDomain) <- MaybeT $ selectFirst [SchoolDomainDomain ==. domain] []
+      let schoolId = schoolDomainSchoolId schoolDomain
+      school <- MaybeT $ get schoolId
+      pure (schoolName school)
+  where
+    domain = Common._emailAddress_domain email
+    nothingTo404 Nothing = throwError err404
+    nothingTo404 (Just x) = pure x
 
 -- 生成验证码
 generateCode :: ( MonadRandom m

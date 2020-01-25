@@ -16,6 +16,9 @@ import           CROE.Common.API
 
 apiHandler :: ServerT API (ExceptT ServerError App)
 apiHandler =
-         User.putProfile proxy
+    (\user -> User.putProfile proxy user
+    :<|> User.getProfile proxy user
+    )
     :<|> User.applyCode proxy
     :<|> User.register proxy
+    :<|> User.validateEmail proxy

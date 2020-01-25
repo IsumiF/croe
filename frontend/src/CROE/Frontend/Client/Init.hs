@@ -1,6 +1,7 @@
 module CROE.Frontend.Client.Init
-  ( Env
-  , newEnv
+  ( Client
+  , client_user
+  , newClient
   , Config
   ) where
 

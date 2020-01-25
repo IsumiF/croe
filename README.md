@@ -4,6 +4,8 @@ A task system built with fullstack haskell tech
 
 ## Setup
 
+### Config File
+
 Example config:
 ```
 {
@@ -20,3 +22,9 @@ Example config:
   }
 }
 ```
+
+### Build Tools
+- `nix`
+- `stack`
+- `sass`
+- `google-closure-compiler`
