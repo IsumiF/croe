@@ -16,7 +16,7 @@ jobs:
         cabal-version: '3.0'
     - name: Install Tools
       run: |
-        npm i -g sass
-        npm i -g google-closure-compiler
+        sudo npm i -g sass
+        sudo npm i -g google-closure-compiler
     - name: Build
       run: make build
