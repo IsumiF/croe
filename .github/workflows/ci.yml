@@ -9,6 +9,12 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: cachix/install-nix-action@v6
+      - name: Nix use reflex cache
+        run: |
+          echo "binary-caches = https://cache.nixos.org https://nixcache.reflex-frp.org" | sudo tee -a /etc/nix/nix.conf
+          echo "binary-cache-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= ryantrinkle.com-1:JJiAKaRv9mWgpVAz8dwewnZe0AzzEAzPkagE9SP5NWI=" | sudo tee -a /etc/nix/nix.conf
+          echo "binary-caches-parallel-connections = 40" | sudo tee -a /etc/nix/nix.conf
+          echo "sandbox = true" | sudo tee -a /etc/nix/nix.conf
       - uses: actions/setup-haskell@v1
         with:
           ghc-version: "8.6.5"
@@ -34,5 +40,7 @@ jobs:
         env:
           GPG_KEY: ${{ secrets.GPG_KEY }}
         run: gpg --quiet --batch --yes --decrypt --passphrase="$GPG_KEY" --output backend/config/ci.json backend/config/ci.json.gpg
-      - name: Build
-        run: make build
+      - name: Build Frontend
+        run: make frontend
+      - name: Build Backend
+        run: make backend

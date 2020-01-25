@@ -3,8 +3,10 @@
 
 module CROE.Frontend.User
   ( UserPassword(..)
-  , User(..)
+  , userPassword_user
+  , userPassword_password
   , toBasicAuthData
+  , User(..)
   , user_email
   , user_name
   ) where
