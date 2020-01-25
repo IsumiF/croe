@@ -1,5 +1,7 @@
 # croe
 
+![GitHub Actions](https://github.com/IsumiF/croe/workflows/Haskell%20CI/badge.svg)
+
 A task system built with fullstack haskell tech
 
 ## Setup
