@@ -30,3 +30,4 @@ Example config:
 - `stack`
 - `sass`
 - `google-closure-compiler`
+- `mysql_config`

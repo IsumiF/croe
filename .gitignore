@@ -3,5 +3,5 @@
 /local_scripts/
 /backend/*.cabal
 dist-newstyle/
-/backend/config/
+/backend/config/*.json
 .DS_store

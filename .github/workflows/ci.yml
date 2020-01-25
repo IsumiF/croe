@@ -1,4 +1,4 @@
-name: Haskell CI
+name: CI
 
 on: [push]
 
@@ -30,6 +30,9 @@ jobs:
           sudo npm i -g sass
           sudo npm i -g google-closure-compiler
           sudo apt-get install -y libmysqlclient-dev
-          which mysql_config
+      - name: Decrypt Secret
+        env:
+          GPG_KEY: ${{ secrets.GPG_KEY }}
+        run: gpg --quiet --batch --yes --decrypt --passphrase="$GPG_KEY" --output backend/config/ci.json backend/config/ci.json.gpg
       - name: Build
         run: make build
