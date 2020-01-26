@@ -24,4 +24,5 @@ primaryWidget env = mdo
     (userPwd, entranceUpdateRoute) <- showWidget isEntrance $
       entranceWidget (env ^. env_client . client_user) undefined
     let updateRoute = fmap ("entrance" <>) entranceUpdateRoute
+    -- debug print
     performEvent_ $ ffor (updated userPwd) (liftIO . print)
