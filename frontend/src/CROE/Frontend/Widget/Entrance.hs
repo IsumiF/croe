@@ -28,12 +28,18 @@ entranceWidget :: (MonadWidget t m)
 entranceWidget UserClient{..} routeDyn =
     elClass "div" "section" $
       divClass "container" $ do
-        let showLogin = fmap (== "login") routeDyn
-            showRegister = fmap (== "register") routeDyn
-        (userPassword, registerEvt) <- showWidget showLogin (loginWidget _getProfile)
-        showWidget showRegister registerWidget
+        postBuild <- getPostBuild
+        let isLogin = fmap (== "/login") routeDyn
+            isRegister = fmap (== "/register") routeDyn
+        (userPassword, registerEvt) <- showWidget isLogin (loginWidget _getProfile)
+        showWidget isRegister registerWidget
 
-        pure (userPassword, fmap (const "register") registerEvt)
+        let updateRoute = leftmost
+              [ fmap (const "/register") registerEvt
+              , fmap (const "/login") postBuild
+              ]
+
+        pure (userPassword, updateRoute)
 
 loginWidget :: forall t m. MonadWidget t m
             => GetProfile t m

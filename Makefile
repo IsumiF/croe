@@ -30,6 +30,14 @@ frontend:
 		--externs=all.js.externs
 .PHONY: frontend
 
+test: backend.test
+.PHONY: test
+
+backend.test:
+	cd backend && ENV=test stack test croe-backend:test:int
+	stack test croe-backend:test:unit
+.PHONY: backend.test
+
 clean:
 	rm -rf output
 

@@ -39,8 +39,10 @@ jobs:
       - name: Decrypt Secret
         env:
           GPG_KEY: ${{ secrets.GPG_KEY }}
-        run: gpg --quiet --batch --yes --decrypt --passphrase="$GPG_KEY" --output backend/config/ci.json backend/config/ci.json.gpg
+        run: gpg --quiet --batch --yes --decrypt --passphrase="$GPG_KEY" --output backend/config/test.json backend/config/test.json.gpg
       - name: Build Frontend
         run: make frontend
       - name: Build Backend
         run: make backend
+      - name: Run Tests
+        run: make test

@@ -31,11 +31,13 @@ spec = do
         r <- runClientM' server $ validateEmail (EmailAddress "steven" "outlook.com")
         getStatusCode r `shouldBe` Just 404
 
-putProfile :: BasicAuthData -> User -> ClientM NoContent
 applyCode :: Maybe Text -> ClientM NoContent
 register :: RegisterForm -> ClientM NoContent
 validateEmail :: EmailAddress -> ClientM Text
-putProfile :<|> applyCode :<|> register :<|> validateEmail = client (Proxy :: Proxy API)
+authProtected :<|> applyCode :<|> register :<|> validateEmail = client (Proxy :: Proxy API)
+
+putProfile user = let (f :<|> _) = authProtected user in f
+getProfile user = let (_ :<|> g) = authProtected user in g
 
 runClientM' :: Server
             -> ClientM a
