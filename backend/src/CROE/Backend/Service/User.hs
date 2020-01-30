@@ -1,162 +1,140 @@
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell   #-}
-
 module CROE.Backend.Service.User
   ( putProfile
   , getProfile
   , applyCode
   , register
   , validateEmail
-  -- *Inernal
   ) where
 
-import           Control.Monad.Except
-import           Control.Monad.Logger
-import           Control.Monad.Random.Class
-import           Control.Monad.Reader
 import           Control.Monad.Trans.Maybe
-import qualified Crypto.KDF.BCrypt          as BCrypt
-import qualified Crypto.Random.Types        as Crypto
-import           Data.Function              ((&))
+import           Data.Function                   ((&))
 import           Data.Maybe
-import           Data.Proxy                 (Proxy)
-import           Data.Text                  (Text)
-import qualified Data.Text                  as T
-import qualified Data.Text.Encoding         as T
-import           Database.Persist           (Entity (..), (=.), (==.))
+import           Data.Text                       (Text)
+import qualified Data.Text                       as T
+import qualified Data.Text.Encoding              as T
+import           Database.Persist                (Entity (..), (=.), (==.))
+import           Polysemy
 import           Servant
 
-import           CROE.Backend.Mail.Class
-import           CROE.Backend.Persist.Class
-import           CROE.Backend.Time.Class
-import qualified CROE.Common.API.User       as Common
-import qualified CROE.Common.User           as Common
-import           CROE.Common.Util           (utf8LBS)
+import           CROE.Backend.Clock.Class
+import           CROE.Backend.Logger.Class
+import qualified CROE.Backend.Mail.Class         as Mail
+import qualified CROE.Backend.Persist.Class      as Persist
+import           CROE.Backend.Random.Class
+import           CROE.Backend.Service.Auth.Class
+import qualified CROE.Common.API.User            as Common
+import qualified CROE.Common.User                as Common
+import           CROE.Common.Util                (utf8LBS)
 
-putProfile :: ( MonadError ServerError m
-              , MonadPersist backend m
-              , WriteEntity User (ReaderT backend m)
-              , ReadEntity User (ReaderT backend m)
-              )
-           => Proxy backend
+putProfile :: Members [Persist.ConnectionPool, Persist.ReadEntity Persist.User, Persist.WriteEntity Persist.User] r
+           => Common.User
            -> Common.User
-           -> Common.User
-           -> m NoContent
-putProfile p authUser newUser = do
-    withConn p $
-      updateWhere
-        [UserEmail ==. oldEmail]
-        [ UserEmail =. Common._user_email newUser
-        , UserName =. Common._user_name newUser
+           -> Sem r (Either ServerError NoContent)
+putProfile authUser newUser = do
+    Persist.withConn $ \conn ->
+      Persist.updateWhere conn
+        [ Persist.UserEmail ==. oldEmail]
+        [ Persist.UserEmail =. Common._user_email newUser
+        , Persist.UserName =. Common._user_name newUser
         ]
-    pure NoContent
+    pure (Right NoContent)
   where
     oldEmail = Common._user_email authUser
 
-getProfile :: Monad m
-           => Proxy backend
-           -> Common.User
-           -> m Common.User
-getProfile _ = pure
+getProfile :: Common.User
+           -> Sem r (Either ServerError Common.User)
+getProfile authUser = pure $ Right authUser
 
-applyCode :: ( MonadError ServerError m
-             , MonadPersist backend m
-             , WriteEntity User (ReaderT backend m)
-             , WriteEntity UserRegistry (ReaderT backend m)
-             , MonadLogger m
-             , MonadMail m
-             , MonadRandom m
-             , MonadTime m
-             )
-          => Proxy backend
-          -> Maybe Text
-          -> m NoContent
-applyCode p email =
+applyCode :: Members [ Persist.ConnectionPool
+                     , Persist.WriteEntity Persist.User
+                     , Persist.WriteEntity Persist.UserRegistry
+                     , Logger
+                     , Mail.Client
+                     , Clock
+                     , RandomService
+                     ] r
+          => Maybe Text
+          -> Sem r (Either ServerError NoContent)
+applyCode email =
     case email of
       Just email' -> do
-        $(logInfo) $ email' <> " is registering"
-        code <- generateCode p email'
-        success <- sendPlainTextMail email' "CROE" "校园代办：注册验证码" (verificationCodeMailBody code)
+        printLog LevelInfo $ email' <> " is registering"
+        code <- generateCode email'
+        success <- Mail.sendPlainTextMail email' "CROE" "校园代办：注册验证码" (verificationCodeMailBody code)
         if success
-        then pure NoContent
-        else throwError err500 { errBody = utf8LBS "系统繁忙，请稍后重试" }
+        then pure (Right NoContent)
+        else pure (Left $ err500 { errBody = utf8LBS "系统繁忙，请稍后重试" })
       Nothing     ->
-        throwError err400 { errBody = utf8LBS "必须提供合法的邮箱地址" }
+        pure $ Left $ err400 { errBody = utf8LBS "必须提供合法的邮箱地址" }
 
-register :: ( MonadError ServerError m
-            , Crypto.MonadRandom m
-            , MonadPersist backend m
-            , ReadEntity UserRegistry (ReaderT backend m)
-            , WriteEntity User (ReaderT backend m)
-            )
-         => Proxy backend
-         -> Common.RegisterForm
-         -> m NoContent
-register p (Common.RegisterForm user password code) = do
-    r <- withConn p $ selectFirst
-            [ UserRegistryEmail ==. Common._user_email user
-            , UserRegistryCode ==. code
+register :: Members '[ AuthService
+                     , Persist.ConnectionPool
+                     , Persist.ReadEntity Persist.UserRegistry
+                     , Persist.WriteEntity Persist.User
+                     ] r
+         => Common.RegisterForm
+         -> Sem r (Either ServerError NoContent)
+register (Common.RegisterForm user password code) = do
+    r <- Persist.withConn $ \conn -> Persist.selectFirst conn
+            [ Persist.UserRegistryEmail ==. Common._user_email user
+            , Persist.UserRegistryCode ==. code
             ] []
-    r & maybe (throwError err403 { errBody = utf8LBS "验证码已过期" }) (\_ -> do
-      createUser p (makeOrdinaryUser user) password
-      pure NoContent
+    r & maybe (pure . Left $ err403 { errBody = utf8LBS "验证码已过期" }) (\_ -> do
+      result <- createUser (makeOrdinaryUser user) password
+      pure $ fmap (const NoContent) result
       )
 
-validateEmail :: ( MonadError ServerError m
-                 , MonadPersist backend m
-                 , ReadEntity School (ReaderT backend m)
-                 , ReadEntity SchoolDomain (ReaderT backend m)
-                 )
-              => Proxy backend
-              -> Common.EmailAddress
-              -> m Text -- ^school name
-validateEmail p email =
-    withConn p $ (nothingTo404 =<<) $ runMaybeT $ do
-      (Entity _ schoolDomain) <- MaybeT $ selectFirst [SchoolDomainDomain ==. domain] []
-      let schoolId = schoolDomainSchoolId schoolDomain
-      school <- MaybeT $ get schoolId
-      pure (schoolName school)
+validateEmail :: Members '[ Persist.ConnectionPool
+                          , Persist.ReadEntity Persist.School
+                          , Persist.ReadEntity Persist.SchoolDomain
+                          ] r
+              => Common.EmailAddress
+              -> Sem r (Either ServerError Text)
+validateEmail email =
+    Persist.withConn $ \conn -> (nothingTo404 =<<) $ runMaybeT $ do
+      (Entity _ schoolDomain) <- MaybeT $ Persist.selectFirst conn [Persist.SchoolDomainDomain ==. domain] []
+      let schoolId = Persist.schoolDomainSchoolId schoolDomain
+      school <- MaybeT $ Persist.get conn schoolId
+      pure (Persist.schoolName school)
   where
     domain = Common._emailAddress_domain email
-    nothingTo404 Nothing = throwError err404
-    nothingTo404 (Just x) = pure x
+    nothingTo404 Nothing  = pure . Left $ err404
+    nothingTo404 (Just x) = pure . Right $ x
 
 -- 生成验证码
-generateCode :: ( MonadRandom m
-                , MonadTime m
-                , MonadPersist backend m
-                , WriteEntity UserRegistry (ReaderT backend m)
-                )
-             => Proxy backend
-             -> Text -- ^email
-             -> m Text
-generateCode p email = do
+generateCode :: Members [ RandomService
+                        , Clock
+                        , Persist.ConnectionPool
+                        , Persist.WriteEntity Persist.UserRegistry
+                        ] r
+             => Text -- ^email
+             -> Sem r Text
+generateCode email = do
     code' <- getRandomR (100000 :: Int, 999999)
     let code = T.pack . show $ code'
-    createdAt <- getCurrentTime
-    withConn p $ insert_ $ UserRegistry email createdAt code
+    createdAt <- currentTimeUTC
+    Persist.withConn $ \conn -> Persist.insert_ conn $ Persist.UserRegistry email createdAt code
     pure code
 
 verificationCodeMailBody :: Text
                          -> Text
 verificationCodeMailBody code = "验证码：" <> code <> "，30分钟内有效"
 
-createUser :: ( MonadError ServerError m
-              , Crypto.MonadRandom m
-              , MonadPersist backend m
-              , WriteEntity User (ReaderT backend m)
-              )
-           => Proxy backend
-           -> User -- ^user without password
+createUser :: Members '[ AuthService
+                       , Persist.ConnectionPool
+                       , Persist.WriteEntity Persist.User
+                       ] r
+           => Persist.User -- ^user without password
            -> Text -- ^password in plaintext
-           -> m ()
-createUser p user pwd = do
-    hashed <- BCrypt.hashPassword 12 (T.encodeUtf8 pwd)
-    let user' = user { userHashedPassword = hashed }
-    key <- withConn p $ insertUnique user'
-    when (isNothing key) $
-      throwError err400 { errBody = utf8LBS "用户已经存在" }
+           -> Sem r (Either ServerError ())
+createUser user pwd = do
+    hashed <- hashPassword (T.encodeUtf8 pwd)
+    let user' = user { Persist.userHashedPassword = hashed }
+    key <- Persist.withConn $ \conn -> Persist.insertUnique conn user'
+    if isNothing key
+    then pure . Left $ err400 { errBody = utf8LBS "用户已经存在" }
+    else pure . Right $ ()
 
-makeOrdinaryUser :: Common.User -> User
-makeOrdinaryUser (Common.User email name) = User email name "" RoleUser
+makeOrdinaryUser :: Common.User -> Persist.User
+makeOrdinaryUser (Common.User email name) =
+    Persist.User email name "" Persist.RoleUser

@@ -8,10 +8,26 @@ synopsis: croe backend
 category: Web
 description: Please see the README on GitLab at <https://code.byted.org/fengzelin.isumi/weekly-report/blob/master/README.md>
 
-ghc-options: -Wall
+ghc-options: -Wall -fplugin=Polysemy.Plugin
+default-extensions:
+  - DataKinds
+  - DeriveGeneric
+  - FlexibleContexts
+  - FlexibleInstances
+  - GADTs
+  - LambdaCase
+  - OverloadedStrings
+  - RecordWildCards
+  - ScopedTypeVariables
+  - TemplateHaskell
+  - TypeOperators
+  - KindSignatures
 
 dependencies:
   - base >= 4.7 && < 5
+  - freer-simple
+  - polysemy
+  - polysemy-plugin
 
 library:
   source-dirs: src
@@ -20,10 +36,14 @@ library:
     - MonadRandom
     - aeson
     - bytestring
+    - cache
+    - clock
     - containers
     - croe-common
     - cryptonite
+    - fast-logger
     - file-embed
+    - hashable
     - http-client
     - http-client-tls
     - http-types
@@ -37,6 +57,7 @@ library:
     - persistent
     - persistent-mysql
     - persistent-template
+    - random
     - resource-pool
     - servant
     - servant-client

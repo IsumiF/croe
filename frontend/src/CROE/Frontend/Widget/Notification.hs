@@ -9,6 +9,7 @@ module CROE.Frontend.Widget.Notification
 
 import           Control.Lens
 import           Data.Default
+import           Data.Functor                      (void)
 import           Data.Text                         (Text)
 import           Reflex.Dom                        hiding (button)
 import           Reflex.Dom.Bulma.Component.Button (button)
@@ -27,11 +28,13 @@ notification :: MonadWidget t m
              => NotificationConfig t
              -> m ()
 notification (NotificationConfig showEvt) = mdo
-    closeEvt <- elDynClass "div" classList $ do
+    manualClose <- elDynClass "div" classList $ do
       (closeEvt', _) <- button ("class" =: "delete") blank
       message <- holdDyn "未知错误" showEvt
       dynText message
       pure closeEvt'
+    autoClose <- delay 3 (void showEvt)
+    let closeEvt = leftmost [manualClose, autoClose]
 
     let hidden = not <$> leftmost [fmap (const False) closeEvt, fmap (const True) showEvt]
         hiddenClass = (\p -> if p then " is-hidden" else "") <$> hidden

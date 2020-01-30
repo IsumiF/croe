@@ -7,27 +7,26 @@ module CROE.Backend.Web
   ) where
 
 import           Control.Monad.Except
-import           Control.Monad.Reader
-import           Data.Proxy                  (Proxy (..))
+import           Data.Proxy                      (Proxy (..))
 import           Network.HTTP.Types
 import           Network.Wai.Middleware.Cors
+import           Polysemy
 import           Servant
 
 import           CROE.Backend.Env
-import           CROE.Backend.Persist.Base   (proxy)
-import qualified CROE.Backend.Service.Auth   as Service
+import           CROE.Backend.Service.Auth.Class (checkBasicAuth)
 import           CROE.Backend.Web.ApiHandler
 import           CROE.Common.API
 
 type APIWithStatic = API :<|> Raw
 
-handler :: ServerT APIWithStatic (ExceptT ServerError App)
+handler :: ServerT APIWithStatic (ExceptT ServerError (Sem AppEffects))
 handler = apiHandler :<|> serveDirectoryWebApp "static/"
 
-toRawHandler :: Env -> ExceptT ServerError App a -> Handler a
-toRawHandler env appE = Handler $ do
-    let app = runExceptT appE
-    ExceptT $ runApp env app
+toRawHandler :: Env -> ExceptT ServerError (Sem AppEffects) a -> Handler a
+toRawHandler env app = do
+    resultEither <- liftIO $ runApp env (runExceptT app)
+    liftEither resultEither
 
 standardHandler :: Env -> Server APIWithStatic
 standardHandler env =
@@ -46,7 +45,7 @@ apiProxy :: Proxy APIWithStatic
 apiProxy = Proxy
 
 context :: Env -> Context (BasicAuthCheck User ': '[])
-context env = BasicAuthCheck (\x -> runReaderT (Service.checkBasicAuth proxy x) env) :. EmptyContext
+context env = BasicAuthCheck (runApp env . checkBasicAuth) :. EmptyContext
 
 corsPolicy :: CorsResourcePolicy
 corsPolicy =

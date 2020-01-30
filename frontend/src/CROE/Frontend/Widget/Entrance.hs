@@ -92,13 +92,13 @@ loginWidget getProfile' =
             -- controller
             let email = value emailInput
                 isEmailValid = fmap (isJust . parseEmailAddress) email
-
                 password = value passwordInput
             loginResult <- getProfile' (fmap Just (BasicAuthData <$> (T.encodeUtf8 <$> email) <*> (T.encodeUtf8 <$> password))) loginClick
             let resultEither = fmap reqResultToEither loginResult
-                errMsg = filterLeft resultEither
+                errMsg = "用户名或密码错误" <$ filterLeft resultEither
             user <- holdDyn Nothing (fmap rightMay resultEither)
-            let userPassword = (\u p -> UserPassword <$> u <*> pure p) <$> user <*> password
+            passwordOnUserChange <- holdDyn "" (tagPromptlyDyn password (updated user))
+            let userPassword = (\u p -> UserPassword <$> u <*> pure p) <$> user <*> passwordOnUserChange
 
             pure (userPassword, errMsg, registerClick)
       pure (userPassword', registerClick')

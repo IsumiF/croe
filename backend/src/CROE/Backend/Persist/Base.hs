@@ -1,51 +1,37 @@
-{-# LANGUAGE DeriveGeneric         #-}
-{-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE FlexibleInstances     #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-
 module CROE.Backend.Persist.Base
-  (
-  -- *Interface
-    MonadPersist(..)
-  -- *Init
-  , Config
+  ( -- *Init
+    Config
   , Env
   , withEnv
-  , HasEnv(..)
-  , proxy
+  -- *Interpreter
+  , runConnectionPool
+  , runReadEntity
+  , runWriteEntity
   ) where
 
-import           Control.Monad.Base
-import           Control.Monad.Except
-import           Control.Monad.IO.Unlift
-import           Control.Monad.Logger
-import           Control.Monad.Reader
-import           Control.Monad.Trans.Control (MonadBaseControl)
+import           Control.Monad.IO.Class
+import           Control.Monad.Logger          hiding (LogLevel (..))
+import qualified Control.Monad.Logger          as MonadLogger
+import           Control.Monad.Reader          (runReaderT)
 import           Data.Aeson
-import           Data.Pool                   (withResource)
-import           Data.Proxy                  (Proxy (..))
-import           Data.Word                   (Word16)
-import           Database.Persist.MySQL
-import           GHC.Generics                (Generic)
+import           Data.Function                 ((&))
+import           Data.Pool
+import           Data.Word                     (Word16)
+import qualified Database.Persist              as Persist
+import           Database.Persist.MySQL        (connectDatabase, connectHost,
+                                                connectPassword, connectPort,
+                                                connectUser, defaultConnectInfo,
+                                                transactionSave, withMySQLPool)
+import qualified Database.Persist.MySQL        as MySQL
+import           Database.Persist.Sql          (SqlBackend, runMigration)
+import           GHC.Generics                  (Generic)
+import           Polysemy
 
-import           CROE.Backend.Persist.Types  (migrateAll)
-import           CROE.Common.Util            (aesonOptions)
-
-class Monad m => MonadPersist backend m where
-  withConn :: Proxy backend -> ReaderT backend m a -> m a
-
-instance (HasEnv r, MonadBaseControl IO m) => MonadPersist SqlBackend (ReaderT r m) where
-  withConn _ m = do
-    (Env pool) <- asks getEnv
-    withResource pool $ \conn -> do
-      x <- runReaderT m conn
-      liftBase (runReaderT transactionSave conn)
-      pure x
-
-instance (MonadPersist backend m) => MonadPersist backend (ExceptT e m) where
-  withConn p m = do
-    e <- lift $ withConn p $ ReaderT $ \c -> runExceptT (runReaderT m c)
-    liftEither e
+import qualified CROE.Backend.Logger.Base      as Logger
+import           CROE.Backend.Logger.Class
+import           CROE.Backend.Persist.Internal
+import           CROE.Backend.Persist.Types    (migrateAll)
+import           CROE.Common.Util              (aesonOptions)
 
 data Config = Config
   { _config_host     :: String
@@ -57,14 +43,6 @@ data Config = Config
   , _config_migrate  :: Bool
   } deriving (Show, Eq, Generic)
 
-newtype Env = Env ConnectionPool
-
-class HasEnv r where
-  getEnv :: r -> Env
-
-instance HasEnv Env where
-  getEnv = id
-
 instance FromJSON Config where
   parseJSON = genericParseJSON aesonOptions
 
@@ -72,12 +50,37 @@ instance ToJSON Config where
   toJSON = genericToJSON aesonOptions
   toEncoding = genericToEncoding aesonOptions
 
-withEnv :: (MonadLogger m, MonadUnliftIO m, MonadBaseControl IO m)
-        => Config -> (Env -> m a) -> m a
-withEnv config f =
+newtype Env = Env MySQL.ConnectionPool
+
+withEnv :: Config
+        -> Logger.Env
+        -> (Env -> IO a)
+        -> IO a
+withEnv config loggerEnv f = runLoggingT result logger'
+  where
+    result = withEnv' config $ \env -> liftIO $ f env
+
+    logger' :: Loc -> LogSource -> MonadLogger.LogLevel -> LogStr -> IO ()
+    logger' loc source level str = logger loc source level str
+                                 & Logger.runLogger loggerEnv
+                                 & runM
+
+    logger :: Members [Embed IO, Logger] r
+           => Loc -> LogSource -> MonadLogger.LogLevel -> LogStr -> Sem r ()
+    logger _ _ logLevel = printLog (convertLogLevel logLevel)
+
+    convertLogLevel :: MonadLogger.LogLevel -> LogLevel
+    convertLogLevel MonadLogger.LevelDebug = LevelDebug
+    convertLogLevel MonadLogger.LevelInfo  = LevelInfo
+    convertLogLevel MonadLogger.LevelWarn  = LevelWarn
+    convertLogLevel MonadLogger.LevelError = LevelError
+    convertLogLevel _                      = LevelDebug
+
+withEnv' :: Config -> (Env -> LoggingT IO a) -> LoggingT IO a
+withEnv' config f =
     withMySQLPool connInfo numConns $ \pool -> do
       if _config_migrate config
-      then runReaderT (withConn (Proxy :: Proxy SqlBackend) $ runMigration migrateAll) (Env pool)
+      then withResource pool $ \conn -> runReaderT (runMigration migrateAll) conn
       else pure ()
       f (Env pool)
   where
@@ -90,5 +93,40 @@ withEnv config f =
       }
     numConns = _config_numConns config
 
-proxy :: Proxy SqlBackend
-proxy = Proxy
+runConnectionPool :: (Member (Embed IO) r)
+                  => Env
+                  -> Sem (ConnectionPool : r) a
+                  -> Sem r a
+runConnectionPool (Env pool) = interpretH $ \case
+    WithConn connConsumer -> do
+      (conn, localPool) <- embed (takeResource pool)
+      x <- runT $ connConsumer conn
+      embed $ runReaderT transactionSave conn
+      embed $ putResource localPool conn
+      raise (runConnectionPool (Env pool) x)
+
+runReadEntity :: ( Member (Embed IO) r
+                  , Persist.PersistEntity record
+                  , Persist.PersistEntityBackend record ~ SqlBackend
+                  )
+               => Sem (ReadEntity record : r) a
+               -> Sem r a
+runReadEntity = interpret $ \case
+    Get conn key -> runReaderT (Persist.get key) conn
+    GetBy conn key -> runReaderT (Persist.getBy key) conn
+    SelectFirst conn a b -> runReaderT (Persist.selectFirst a b) conn
+    SelectList conn a b -> runReaderT (Persist.selectList a b) conn
+
+runWriteEntity :: ( Member (Embed IO) r
+                   , Persist.PersistEntity record
+                   , Persist.PersistEntityBackend record ~ SqlBackend
+                   )
+                => Sem (WriteEntity record : r) a
+                -> Sem r a
+runWriteEntity = interpret $ \case
+    Insert conn r -> runReaderT (Persist.insert r) conn
+    Insert_ conn r -> runReaderT (Persist.insert_ r) conn
+    InsertUnique conn r -> runReaderT (Persist.insertUnique r) conn
+    Replace conn key r -> runReaderT (Persist.replace key r) conn
+    Update conn key updates -> runReaderT (Persist.update key updates) conn
+    UpdateWhere conn filters updates -> runReaderT (Persist.updateWhere filters updates) conn

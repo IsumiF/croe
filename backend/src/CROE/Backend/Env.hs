@@ -4,42 +4,49 @@
 {-# LANGUAGE RecordWildCards   #-}
 
 module CROE.Backend.Env
-  ( Env
+  ( runApp
+  , AppEffects
   , withEnv
-  , Config
+  , Env
   , readConfig
-  , App
-  , runApp
+  , Config
   ) where
 
-import           Control.Monad.Except
-import           Control.Monad.Logger
-import           Control.Monad.Random.Class
-import           Control.Monad.Reader
-import qualified Crypto.Random              as Crypto
 import           Data.Aeson
 import           Data.Bifunctor
-import           Data.ByteString            (ByteString)
-import qualified Data.ByteString.Lazy       as LBS
-import           Data.Text                  (Text)
-import qualified Data.Text                  as T
-import           GHC.Generics               (Generic)
+import           Data.ByteString                 (ByteString)
+import qualified Data.ByteString.Lazy            as LBS
+import           Data.Function                   ((&))
+import           Data.Text                       (Text)
+import qualified Data.Text                       as T
+import           GHC.Generics                    (Generic)
+import           Polysemy
 
-import qualified CROE.Backend.Logger        as Logger
-import qualified CROE.Backend.Mail.Init     as Mail
-import qualified CROE.Backend.Persist.Base  as Persist
-import           CROE.Common.Util           (aesonOptions)
+import qualified CROE.Backend.Clock.Base         as Clock
+import           CROE.Backend.Clock.Class
+import qualified CROE.Backend.Logger.Base        as Logger
+import           CROE.Backend.Logger.Class
+import qualified CROE.Backend.Mail.Base          as Mail
+import qualified CROE.Backend.Mail.Class         as Mail
+import qualified CROE.Backend.Persist.Base       as Persist
+import qualified CROE.Backend.Persist.Class      as Persist
+import           CROE.Backend.Random.Base
+import qualified CROE.Backend.Service.Auth.Base  as AuthService
+import           CROE.Backend.Service.Auth.Class
+import           CROE.Common.Util                (aesonOptions)
 
 data Env = Env
-  { _env_persist :: Persist.Env
-  , _env_logger  :: Logger.Env
-  , _env_mail    :: Mail.Env
+  { _env_persist     :: Persist.Env
+  , _env_logger      :: Logger.Env
+  , _env_mail        :: Mail.Env
+  , _env_authService :: AuthService.Env
   }
 
 data Config = Config
-  { _config_persist :: Persist.Config
-  , _config_logger  :: Logger.Config
-  , _config_mail    :: Mail.Config
+  { _config_persist     :: Persist.Config
+  , _config_logger      :: Logger.Config
+  , _config_mail        :: Mail.Config
+  , _config_authService :: AuthService.Config
   } deriving Generic
 
 readConfig :: ByteString -> Either Text Config
@@ -51,36 +58,44 @@ instance FromJSON Config where
 withEnv :: Config -> (Env -> IO a) -> IO a
 withEnv c f =
     Logger.withEnv (_config_logger c) $ \_env_logger ->
-    Logger.runLoggingT _env_logger $
-    Persist.withEnv (_config_persist c) $ \_env_persist ->
+    Persist.withEnv (_config_persist c) _env_logger $ \_env_persist -> do
       let _env_mail = Mail.newEnv (_config_mail c)
-          env = Env{..}
-       in liftIO (f env)
+      _env_authService <- AuthService.newEnv (_config_authService c)
+      let env = Env{..}
+      f env
 
-type App = ReaderT Env (LoggingT IO)
+type AppEffects =
+  '[ AuthService
+   , Persist.ConnectionPool
+   , Persist.ReadEntity Persist.User
+   , Persist.WriteEntity Persist.User
+   , Persist.ReadEntity Persist.UserRegistry
+   , Persist.WriteEntity Persist.UserRegistry
+   , Persist.ReadEntity Persist.School
+   , Persist.WriteEntity Persist.School
+   , Persist.ReadEntity Persist.SchoolDomain
+   , Persist.WriteEntity Persist.SchoolDomain
+   , Mail.Client
+   , Clock
+   , RandomService
+   , Logger
+   , Embed IO
+   ]
 
-runApp :: Env -> App a -> IO a
-runApp env app = Logger.runLoggingT env $ runReaderT app env
-
-instance Logger.HasEnv Env where
-  getEnv = _env_logger
-
-instance Persist.HasEnv Env where
-  getEnv = _env_persist
-
-instance Mail.HasEnv Env where
-  getEnv = _env_mail
-
--- Orphan Instances
-
-instance MonadRandom m => MonadRandom (LoggingT m) where
-  getRandomR r = lift $ getRandomR r
-  getRandom = lift getRandom
-  getRandomRs r = lift $ getRandomRs r
-  getRandoms = lift getRandoms
-
-instance MonadIO m => Crypto.MonadRandom (ReaderT r m) where
-  getRandomBytes n = liftIO $ Crypto.getRandomBytes n
-
-instance Crypto.MonadRandom m => Crypto.MonadRandom (ExceptT e m) where
-  getRandomBytes n = lift $ Crypto.getRandomBytes n
+runApp :: Env -> Sem AppEffects a -> IO a
+runApp Env{..} app = app
+    & AuthService.runService _env_authService
+    & Persist.runConnectionPool _env_persist
+    & Persist.runReadEntity
+    & Persist.runWriteEntity
+    & Persist.runReadEntity
+    & Persist.runWriteEntity
+    & Persist.runReadEntity
+    & Persist.runWriteEntity
+    & Persist.runReadEntity
+    & Persist.runWriteEntity
+    & Mail.runClient _env_mail
+    & Clock.runClock
+    & runRandomService
+    & Logger.runLogger _env_logger
+    & runM

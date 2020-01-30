@@ -33,7 +33,7 @@ setupSpec = do
     env <- lookupEnv "ENV"
     let env' = fromMaybe "dev" env
         configFile = "config/" <> env' <> ".json"
-        port = fromMaybe 8080 (portStr >>= readMaybe)
+        port = fromMaybe 8081 (portStr >>= readMaybe)
     threadId <- forkIO $ mainWithArgs (CmdArgs configFile port)
     wait "127.0.0.1" port
     clientEnv <- clientEnvFromPort port

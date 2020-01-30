@@ -225,5 +225,13 @@ newline: native
 #
 # No language extensions are enabled by default.
 language_extensions:
-  - MultiParamTypeClasses
+  - DataKinds
+  - FlexibleContexts
+  - GADTs
+  - LambdaCase
+  - OverloadedStrings
+  - RecordWildCards
   - ScopedTypeVariables
+  - TemplateHaskell
+  - TypeOperators
+  - KindSignatures

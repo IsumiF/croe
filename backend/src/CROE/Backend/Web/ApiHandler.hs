@@ -7,18 +7,18 @@ module CROE.Backend.Web.ApiHandler
   ) where
 
 import           Control.Monad.Except
+import           Polysemy
 import           Servant
 
 import           CROE.Backend.Env
-import           CROE.Backend.Persist.Base (proxy)
 import qualified CROE.Backend.Service.User as User
 import           CROE.Common.API
 
-apiHandler :: ServerT API (ExceptT ServerError App)
+apiHandler :: ServerT API (ExceptT ServerError (Sem AppEffects))
 apiHandler =
-    (\user -> User.putProfile proxy user
-    :<|> User.getProfile proxy user
+    (\user -> ExceptT . User.putProfile user
+    :<|> ExceptT (User.getProfile user)
     )
-    :<|> User.applyCode proxy
-    :<|> User.register proxy
-    :<|> User.validateEmail proxy
+    :<|> ExceptT . User.applyCode
+    :<|> ExceptT . User.register
+    :<|> ExceptT . User.validateEmail

@@ -117,6 +117,13 @@ packages:
   original:
     hackage: zenc-0.1.1
 - completed:
+    hackage: polysemy-1.2.3.0@sha256:d9cfa7942940c7c6d07d1f26ae70c4f1170f9bd6c331bdbe586e810fafc25f17,5878
+    pantry-tree:
+      size: 3625
+      sha256: a54b1b565848944e37a5533bd91e91ecb7cdfa21294ba599c13d015d354c4f39
+  original:
+    hackage: polysemy-1.2.3.0
+- completed:
     cabal-file:
       size: 2216
       sha256: bde348544c5a8f8c46a6fb59160cb1ca0a7d33327db64b8920ee8f088959b215

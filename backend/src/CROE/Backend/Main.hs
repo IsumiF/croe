@@ -44,7 +44,7 @@ parser = CmdArgs
      <> metavar "PORT"
      <> help "port to run the service on"
      <> showDefault
-     <> value 8080
+     <> value 8081
       )
 
 mainWithArgs :: CmdArgs -> IO ()
