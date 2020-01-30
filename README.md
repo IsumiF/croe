@@ -20,7 +20,16 @@ Example config:
     "user": "root",
     "password": "dev",
     "database": "croe",
-    "numConns": 10
+    "numConns": 10,
+    "migrate": true
+  },
+  "mail": {
+    "smtpHost": "smtp.gmail.com",
+    "username": "your email address",
+    "password": "your password"
+  },
+  "authService": {
+    "cacheExpiration": 30
   }
 }
 ```
@@ -31,3 +40,10 @@ Example config:
 - `sass`
 - `google-closure-compiler`
 - `mysql_config`
+
+## Develop
+
+### Modify test config
+
+1. edit file `backend/config/test.json`
+2. encrypt with `gpg --symmetric --cipher-algo AES256 test.json`
