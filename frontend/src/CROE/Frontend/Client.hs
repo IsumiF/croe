@@ -2,6 +2,7 @@ module CROE.Frontend.Client
   ( Client
   , client_user
   , reqResultToEither
+  , messageOnReqError
   , module CROE.Frontend.Client.User
   ) where
 
@@ -18,3 +19,7 @@ reqResultToEither (ResponseSuccess _ a _) = Right a
 reqResultToEither (ResponseFailure _ msg xhrResponse) =
     Left $ fromMaybe msg (_xhrResponse_responseText xhrResponse)
 reqResultToEither (RequestFailure _ msg ) = Left msg
+
+messageOnReqError :: Reflex t => Text -> Event t (ReqResult tag a) -> Event t Text
+messageOnReqError msg =
+    fmap (const msg) . filterLeft . fmap reqResultToEither

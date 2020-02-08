@@ -11,8 +11,8 @@ import           Control.Lens
 import           Data.Default
 import           Data.Functor                      (void)
 import           Data.Text                         (Text)
-import           Reflex.Dom                        hiding (button)
-import           Reflex.Dom.Bulma.Component.Button (button)
+import           Reflex.Dom
+import           Reflex.Dom.Bulma.Component.Button (buttonAttr)
 
 newtype NotificationConfig t = NotificationConfig
   { _notificationConfig_show    :: Event t Text
@@ -29,7 +29,7 @@ notification :: MonadWidget t m
              -> m ()
 notification (NotificationConfig showEvt) = mdo
     manualClose <- elDynClass "div" classList $ do
-      (closeEvt', _) <- button ("class" =: "delete") blank
+      (closeEvt', _) <- buttonAttr ("class" =: "delete") blank
       message <- holdDyn "未知错误" showEvt
       dynText message
       pure closeEvt'

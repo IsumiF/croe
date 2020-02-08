@@ -19,6 +19,7 @@ module CROE.Backend.Persist.Class
   , replace
   , update
   , updateWhere
+  , upsert
   ) where
 
 import           CROE.Backend.Persist.Internal

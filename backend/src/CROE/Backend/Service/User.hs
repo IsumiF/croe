@@ -7,7 +7,7 @@ module CROE.Backend.Service.User
   ) where
 
 import           Control.Monad.Trans.Maybe
-import           Data.Function                   ((&))
+import           Data.Functor                    (void)
 import           Data.Maybe
 import           Data.Text                       (Text)
 import qualified Data.Text                       as T
@@ -75,14 +75,17 @@ register :: Members '[ AuthService
          => Common.RegisterForm
          -> Sem r (Either ServerError NoContent)
 register (Common.RegisterForm user password code) = do
-    r <- Persist.withConn $ \conn -> Persist.selectFirst conn
+    userRegistryEntity <- Persist.withConn $ \conn -> Persist.selectFirst conn
             [ Persist.UserRegistryEmail ==. Common._user_email user
             , Persist.UserRegistryCode ==. code
             ] []
-    r & maybe (pure . Left $ err403 { errBody = utf8LBS "验证码已过期" }) (\_ -> do
-      result <- createUser (makeOrdinaryUser user) password
-      pure $ fmap (const NoContent) result
-      )
+    case userRegistryEntity of
+      Nothing -> pure . Left $ err403 { errBody = utf8LBS "验证码错误或已过期" }
+      Just _ -> do
+        user' <- makeOrdinaryUser user password
+        void $ Persist.withConn $ \conn ->
+          Persist.upsert conn user' [Persist.UserHashedPassword =. Persist.userHashedPassword user']
+        pure (Right NoContent)
 
 validateEmail :: Members '[ Persist.ConnectionPool
                           , Persist.ReadEntity Persist.School
@@ -120,21 +123,10 @@ verificationCodeMailBody :: Text
                          -> Text
 verificationCodeMailBody code = "验证码：" <> code <> "，30分钟内有效"
 
-createUser :: Members '[ AuthService
-                       , Persist.ConnectionPool
-                       , Persist.WriteEntity Persist.User
-                       ] r
-           => Persist.User -- ^user without password
-           -> Text -- ^password in plaintext
-           -> Sem r (Either ServerError ())
-createUser user pwd = do
-    hashed <- hashPassword (T.encodeUtf8 pwd)
-    let user' = user { Persist.userHashedPassword = hashed }
-    key <- Persist.withConn $ \conn -> Persist.insertUnique conn user'
-    if isNothing key
-    then pure . Left $ err400 { errBody = utf8LBS "用户已经存在" }
-    else pure . Right $ ()
-
-makeOrdinaryUser :: Common.User -> Persist.User
-makeOrdinaryUser (Common.User email name) =
-    Persist.User email name "" Persist.RoleUser
+makeOrdinaryUser :: Member AuthService r
+                 => Common.User
+                 -> Text -- ^password in cleartext
+                 -> Sem r Persist.User
+makeOrdinaryUser (Common.User email name) password = do
+    hashed <- hashPassword (T.encodeUtf8 password)
+    pure $ Persist.User email name hashed Persist.RoleUser

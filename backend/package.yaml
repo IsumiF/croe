@@ -8,7 +8,12 @@ synopsis: croe backend
 category: Web
 description: Please see the README on GitLab at <https://code.byted.org/fengzelin.isumi/weekly-report/blob/master/README.md>
 
-ghc-options: -Wall -fplugin=Polysemy.Plugin
+ghc-options:
+  - -Wall
+  - -fplugin=Polysemy.Plugin
+  # Enable these when building haddock 
+  # - -fdefer-type-errors 
+  # - -fno-warn-deferred-type-errors 
 default-extensions:
   - DataKinds
   - DeriveGeneric

@@ -124,6 +124,13 @@ packages:
   original:
     hackage: polysemy-1.2.3.0
 - completed:
+    hackage: polysemy-plugin-0.2.4.0@sha256:b27f399946e90d480271d2b655b6172ed80f9d421f871c21a804511bc7b0f53c,2952
+    pantry-tree:
+      size: 1232
+      sha256: cb625393a44faa3c25e513c7df89742b5bbe457533f8f2ebf37bc6a32bf10423
+  original:
+    hackage: polysemy-plugin-0.2.4.0
+- completed:
     cabal-file:
       size: 2216
       sha256: bde348544c5a8f8c46a6fb59160cb1ca0a7d33327db64b8920ee8f088959b215

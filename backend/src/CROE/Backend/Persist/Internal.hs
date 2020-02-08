@@ -26,5 +26,6 @@ data WriteEntity record (m :: * -> *) a where
   Replace :: SqlBackend -> Key record -> record -> WriteEntity record m ()
   Update :: SqlBackend -> Key record -> [Update record] -> WriteEntity record m ()
   UpdateWhere :: SqlBackend -> [Filter record] -> [Update record] -> WriteEntity record m ()
+  Upsert :: SqlBackend -> record -> [Update record] -> WriteEntity record m (Entity record)
 
 makeSem ''WriteEntity

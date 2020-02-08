@@ -1,3 +1,5 @@
+{-# LANGUAGE BangPatterns #-}
+
 module CROE.Backend.Persist.Base
   ( -- *Init
     Config
@@ -100,10 +102,12 @@ runConnectionPool :: (Member (Embed IO) r)
 runConnectionPool (Env pool) = interpretH $ \case
     WithConn connConsumer -> do
       (conn, localPool) <- embed (takeResource pool)
-      x <- runT $ connConsumer conn
-      embed $ runReaderT transactionSave conn
-      embed $ putResource localPool conn
-      raise (runConnectionPool (Env pool) x)
+      !x <- runT $ connConsumer conn
+      y <- raise (runConnectionPool (Env pool) x)
+      embed $ do
+        runReaderT transactionSave conn
+        putResource localPool conn
+      pure y
 
 runReadEntity :: ( Member (Embed IO) r
                   , Persist.PersistEntity record
@@ -130,3 +134,4 @@ runWriteEntity = interpret $ \case
     Replace conn key r -> runReaderT (Persist.replace key r) conn
     Update conn key updates -> runReaderT (Persist.update key updates) conn
     UpdateWhere conn filters updates -> runReaderT (Persist.updateWhere filters updates) conn
+    Upsert conn record updates -> runReaderT (Persist.upsert record updates) conn
