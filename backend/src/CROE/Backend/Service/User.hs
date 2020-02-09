@@ -7,8 +7,8 @@ module CROE.Backend.Service.User
   ) where
 
 import           Control.Monad.Trans.Maybe
+import           Data.Coerce
 import           Data.Functor                    (void)
-import           Data.Maybe
 import           Data.Text                       (Text)
 import qualified Data.Text                       as T
 import qualified Data.Text.Encoding              as T
@@ -127,6 +127,6 @@ makeOrdinaryUser :: Member AuthService r
                  => Common.User
                  -> Text -- ^password in cleartext
                  -> Sem r Persist.User
-makeOrdinaryUser (Common.User email name) password = do
+makeOrdinaryUser (Common.User email name role) password = do
     hashed <- hashPassword (T.encodeUtf8 password)
-    pure $ Persist.User email name hashed Persist.RoleUser
+    pure $ Persist.User email name hashed (coerce role) 0

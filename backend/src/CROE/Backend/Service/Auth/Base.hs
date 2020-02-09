@@ -69,7 +69,7 @@ runService (Env cache) = interpret $ \case
                   isValid = BCrypt.validatePassword password hash'
                   result =
                     if isValid
-                    then Authorized $ Common.User (userEmail user) (userName user)
+                    then Authorized $ userToCommon user
                     else BadPassword
               embed $ Cache.insert cache (CacheKey authData) result
               pure result

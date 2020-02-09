@@ -16,12 +16,15 @@ library
     CROE.Common.Util
     CROE.Common.API
     CROE.Common.API.User
+    CROE.Common.API.Task
     CROE.Common.User
+    CROE.Common.Task
   hs-source-dirs: src
   build-depends:
       base
     , aeson
     , bytestring
+    , containers
     , lens
     , servant
     , text

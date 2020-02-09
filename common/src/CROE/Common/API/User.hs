@@ -49,23 +49,11 @@ type APIValidateEmail = "validate_email"
   :> ReqBody '[JSON] EmailAddress
   :> Post '[JSON] Text
 
-data User = User
-  { _user_email :: Text
-  , _user_name  :: Text
-  } deriving (Show, Eq, Generic)
-
 data RegisterForm = RegisterForm
   { _registerForm_user     :: User
   , _registerForm_password :: Text
   , _registerForm_code     :: Text
   } deriving (Show, Eq, Generic)
-
-instance FromJSON User where
-  parseJSON = genericParseJSON aesonOptions
-
-instance ToJSON User where
-  toJSON = genericToJSON aesonOptions
-  toEncoding = genericToEncoding aesonOptions
 
 instance FromJSON RegisterForm where
   parseJSON = genericParseJSON aesonOptions
@@ -74,5 +62,4 @@ instance ToJSON RegisterForm where
   toJSON = genericToJSON aesonOptions
   toEncoding = genericToEncoding aesonOptions
 
-makeLenses ''User
 makeLenses ''RegisterForm

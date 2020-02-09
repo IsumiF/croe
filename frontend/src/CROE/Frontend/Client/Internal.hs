@@ -10,14 +10,15 @@ module CROE.Frontend.Client.Internal where
 
 import           Control.Lens
 import           Data.Aeson
-import           Data.Proxy                (Proxy (..))
-import           GHC.Generics              (Generic)
-import           Reflex.Dom                hiding (Client)
+import           Data.Proxy                     (Proxy (..))
+import           GHC.Generics                   (Generic)
+import           Reflex.Dom                     hiding (Client)
 import           Servant.API
-import           Servant.Reflex            hiding (Client)
+import           Servant.Reflex                 hiding (Client)
 
-import           CROE.Common.API           (API)
-import           CROE.Common.Util          (aesonOptions)
+import           CROE.Common.API                (API)
+import           CROE.Common.Util               (aesonOptions)
+import           CROE.Frontend.Client.Protected
 import           CROE.Frontend.Client.User
 
 newtype Config = Config
@@ -27,18 +28,25 @@ newtype Config = Config
 instance FromJSON Config where
   parseJSON = genericParseJSON aesonOptions
 
-newtype Client t m = Client
-  { _client_user :: UserClient t m
+data Client t m = Client
+  { _client_user      :: UserClient t m
+  , _client_protected :: Dynamic t (Maybe BasicAuthData) -> ProtectedClient t m
   }
 
 makeLenses ''Client
 
 newClient :: forall t m. MonadWidget t m => Config -> Client t m
 newClient (Config baseUrl) =
-    let (userProtected :<|> _applyCode :<|> _register :<|> _validateEmail) =
+    let ((userProtected :<|> _applyCode :<|> _register :<|> _validateEmail)
+          :<|> protected) =
           client (Proxy :: Proxy API) (Proxy :: Proxy m) (Proxy :: Proxy ())
             (constDyn baseUrl)
         _putProfile user = let (f :<|> _) = userProtected user in f
         _getProfile user = let (_ :<|> g) = userProtected user in g
         _client_user = UserClient{..}
+
+        _client_protected user =
+          let _taskClient_new = protected user
+              _protectedClient_task = TaskClient{..}
+           in ProtectedClient{..}
      in Client{..}

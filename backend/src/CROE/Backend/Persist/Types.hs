@@ -13,6 +13,7 @@ module CROE.Backend.Persist.Types
   ( User(..)
   , Role(..)
   , UserId
+  , userToCommon
   , UserRegistry(..)
   , UserRegistryId
   , School(..)
@@ -21,18 +22,29 @@ module CROE.Backend.Persist.Types
   , SchoolDomainId
   , SchoolCampus(..)
   , SchoolCampusId
+  , Task(..)
+  , TaskId
+  , TaskStatus(..)
+  , Review(..)
+  , ReviewId
   , EntityField(..)
   , migrateAll
   , Unique(UniqueUserEmail)
   ) where
 
-import           Data.ByteString                 (ByteString)
-import           Data.Text                       (Text)
+import           Data.ByteString                       (ByteString)
+import           Data.Coerce
+import           Data.Text                             (Text)
 import           Data.Time
+import           Data.Word                             (Word64)
 import           Database.Persist
 import           Database.Persist.TH
 
 import           CROE.Backend.Persist.Types.Role
+import           CROE.Backend.Persist.Types.TaskStatus
+import qualified CROE.Common.User                      as Common
+
+type Duration = (UTCTime, UTCTime)
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
 User
@@ -40,6 +52,7 @@ User
   name Text
   hashedPassword ByteString
   role Role
+  balance Word64
   UniqueUserEmail email
   deriving Show
 UserRegistry
@@ -58,4 +71,25 @@ SchoolCampus
   schoolId SchoolId
   name Text
   deriving Show
+Task
+	currentStatus TaskStatus
+	creator UserId
+  taker UserId Maybe
+	reward Word64
+	title Text
+	location SchoolCampusId
+	duration Duration
+	description FilePath
+  deriving Show
+Review
+  user UserId
+  rating Double
+  message Text Maybe
+  deriving Show
 |]
+
+userToCommon :: User -> Common.User
+userToCommon user = Common.User
+    (userEmail user)
+    (userName user)
+    (coerce (userRole user))

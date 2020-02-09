@@ -18,6 +18,7 @@ library
       CROE.Frontend.Client.Init
       CROE.Frontend.Client.Internal
       CROE.Frontend.Client.User
+      CROE.Frontend.Client.Protected
       CROE.Frontend.User
       CROE.Frontend.Widget
       CROE.Frontend.Widget.Entrance
