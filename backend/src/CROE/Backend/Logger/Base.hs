@@ -1,18 +1,22 @@
+{-# LANGUAGE BlockArguments #-}
+
 module CROE.Backend.Logger.Base
   ( Config
   , Env
   , withEnv
   , runLogger
+  , runLoggerPure
   ) where
 
-import           Control.Monad              (when)
+import           Control.Monad             (when)
 import           Control.Monad.IO.Class
 import           Data.Aeson
-import           Data.Map.Strict            (Map)
-import qualified Data.Map.Strict            as Map
-import           Data.Text                  (Text)
-import qualified Data.Text.Encoding         as T
+import           Data.Map.Strict           (Map)
+import qualified Data.Map.Strict           as Map
+import           Data.Text                 (Text)
+import qualified Data.Text.Encoding        as T
 import           Polysemy
+import           Polysemy.Output
 import           System.Log.FastLogger
 import           Text.Printf
 
@@ -69,3 +73,12 @@ runLogger (Env (Config logLevel) logger) = interpret $ \case
               toLogStr (printf "[%s] [%s] " (T.decodeUtf8 formattedTime) levelStr :: String)
               <> toLogStr str
               <> "\n"
+
+runLoggerPure :: Sem (Logger : r) a
+              -> Sem r ([(LogLevel, Text)], a)
+runLoggerPure =
+    runOutputList
+  . reinterpret \case
+      PrintLog level msg -> do
+        let msg' = T.decodeUtf8 . fromLogStr . toLogStr $ msg
+        output (level, msg')

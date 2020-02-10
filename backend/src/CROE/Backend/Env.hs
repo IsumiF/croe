@@ -28,6 +28,7 @@ import qualified CROE.Backend.Logger.Base        as Logger
 import           CROE.Backend.Logger.Class
 import qualified CROE.Backend.Mail.Base          as Mail
 import qualified CROE.Backend.Mail.Class         as Mail
+import qualified CROE.Backend.ObjectStorage.Base as ObjectStorage
 import qualified CROE.Backend.Persist.Base       as Persist
 import qualified CROE.Backend.Persist.Class      as Persist
 import           CROE.Backend.Random.Base
@@ -36,17 +37,19 @@ import           CROE.Backend.Service.Auth.Class
 import           CROE.Common.Util                (aesonOptions)
 
 data Env = Env
-  { _env_persist     :: Persist.Env
-  , _env_logger      :: Logger.Env
-  , _env_mail        :: Mail.Env
-  , _env_authService :: AuthService.Env
+  { _env_persist       :: Persist.Env
+  , _env_logger        :: Logger.Env
+  , _env_mail          :: Mail.Env
+  , _env_authService   :: AuthService.Env
+  , _env_objectStorage :: ObjectStorage.Env
   }
 
 data Config = Config
-  { _config_persist     :: Persist.Config
-  , _config_logger      :: Logger.Config
-  , _config_mail        :: Mail.Config
-  , _config_authService :: AuthService.Config
+  { _config_persist       :: Persist.Config
+  , _config_logger        :: Logger.Config
+  , _config_mail          :: Mail.Config
+  , _config_authService   :: AuthService.Config
+  , _config_objectStorage :: ObjectStorage.Config
   } deriving Generic
 
 readConfig :: ByteString -> Either Text Config
@@ -61,7 +64,8 @@ withEnv c f =
     Persist.withEnv (_config_persist c) _env_logger $ \_env_persist -> do
       let _env_mail = Mail.newEnv (_config_mail c)
       _env_authService <- AuthService.newEnv (_config_authService c)
-      let env = Env{..}
+      let _env_objectStorage = ObjectStorage.newEnv (_config_objectStorage c)
+          env = Env{..}
       f env
 
 type AppEffects =

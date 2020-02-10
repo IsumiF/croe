@@ -11,9 +11,9 @@ description: Please see the README on GitLab at <https://code.byted.org/fengzeli
 ghc-options:
   - -Wall
   - -fplugin=Polysemy.Plugin
-  # Enable these when building haddock 
-  # - -fdefer-type-errors 
-  # - -fno-warn-deferred-type-errors 
+  # Enable these when building haddock
+  # - -fdefer-type-errors
+  # - -fno-warn-deferred-type-errors
 default-extensions:
   - DataKinds
   - DeriveGeneric
@@ -29,54 +29,55 @@ default-extensions:
   - KindSignatures
 
 dependencies:
+  - HaskellNet-SSL
+  - MonadRandom
+  - aeson
   - base >= 4.7 && < 5
-  - freer-simple
+  - bytestring
+  - cache
+  - clock
+  - containers
+  - croe-common
+  - cryptonite
+  - directory
+  - fast-logger
+  - file-embed
+  - filepath
+  - hashable
+  - http-client
+  - http-client-tls
+  - http-types
+  - lens
+  - monad-control
+  - monad-logger
+  - mtl
+  - optparse-applicative
+  - pandoc
+  - pandoc-types
+  - persistent
+  - persistent-mysql
+  - persistent-template
   - polysemy
   - polysemy-plugin
+  - random
+  - resource-pool
+  - servant
+  - servant-client
+  - servant-server
+  - string-interpolate
+  - temporary
+  - text
+  - time
+  - transformers
+  - transformers-base
+  - unliftio-core
+  - unordered-containers
+  - wai-cors
+  - warp
+  - warp-tls
 
 library:
   source-dirs: src
-  dependencies:
-    - HaskellNet-SSL
-    - MonadRandom
-    - aeson
-    - bytestring
-    - cache
-    - clock
-    - containers
-    - croe-common
-    - cryptonite
-    - fast-logger
-    - file-embed
-    - hashable
-    - http-client
-    - http-client-tls
-    - http-types
-    - lens
-    - monad-control
-    - monad-logger
-    - mtl
-    - optparse-applicative
-    - pandoc
-    - pandoc-types
-    - persistent
-    - persistent-mysql
-    - persistent-template
-    - random
-    - resource-pool
-    - servant
-    - servant-client
-    - servant-server
-    - string-interpolate
-    - text
-    - time
-    - transformers
-    - transformers-base
-    - unliftio-core
-    - unordered-containers
-    - wai-cors
-    - warp
-    - warp-tls
 
 executables:
   croe-backend-exe:
