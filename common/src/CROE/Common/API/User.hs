@@ -12,6 +12,7 @@ module CROE.Common.API.User
   , registerForm_user
   , registerForm_password
   , registerForm_code
+  , module CROE.Common.User
   ) where
 
 import           Control.Lens

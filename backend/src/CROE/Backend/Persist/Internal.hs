@@ -11,6 +11,11 @@ data ConnectionPool m a where
 
 makeSem ''ConnectionPool
 
+data Transactional (m :: * -> *) a where
+  TransactionUndo :: SqlBackend -> Transactional m ()
+
+makeSem ''Transactional
+
 data ReadEntity record (m :: * -> *) a where
   Get :: SqlBackend -> Key record -> ReadEntity record m (Maybe record)
   GetBy :: SqlBackend -> Unique record -> ReadEntity record m (Maybe (Entity record))

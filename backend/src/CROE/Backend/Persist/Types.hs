@@ -25,6 +25,7 @@ module CROE.Backend.Persist.Types
   , Task(..)
   , TaskId
   , TaskStatus(..)
+  , Duration
   , Review(..)
   , ReviewId
   , EntityField(..)
@@ -79,7 +80,8 @@ Task
 	title Text
 	location SchoolCampusId
 	duration Duration
-	description FilePath
+  abstract Text
+	descriptionKey Text
   deriving Show
 Review
   user UserId

@@ -23,7 +23,6 @@ import qualified CROE.Backend.Persist.Class      as Persist
 import           CROE.Backend.Random.Class
 import           CROE.Backend.Service.Auth.Class
 import qualified CROE.Common.API.User            as Common
-import qualified CROE.Common.User                as Common
 import           CROE.Common.Util                (utf8LBS)
 
 putProfile :: Members [Persist.ConnectionPool, Persist.ReadEntity Persist.User, Persist.WriteEntity Persist.User] r

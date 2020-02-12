@@ -7,6 +7,7 @@ module CROE.Backend.Persist.Base
   , withEnv
   -- *Interpreter
   , runConnectionPool
+  , runTransactional
   , runReadEntity
   , runWriteEntity
   ) where
@@ -108,6 +109,12 @@ runConnectionPool (Env pool) = interpretH $ \case
         runReaderT transactionSave conn
         putResource localPool conn
       pure y
+
+runTransactional :: (Member (Embed IO) r)
+                 => Sem (Transactional : r) a
+                 -> Sem r a
+runTransactional = interpret $ \case
+    TransactionUndo conn -> embed $ runReaderT MySQL.transactionUndo conn
 
 runReadEntity :: ( Member (Embed IO) r
                   , Persist.PersistEntity record

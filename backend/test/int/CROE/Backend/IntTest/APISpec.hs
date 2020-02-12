@@ -5,9 +5,11 @@ module CROE.Backend.IntTest.APISpec
 import           Test.Hspec
 
 import           CROE.Backend.IntTest.APISpec.Base
+import qualified CROE.Backend.IntTest.APISpec.Task as Task
 import qualified CROE.Backend.IntTest.APISpec.User as User
 
 spec :: Spec
 spec =
-    beforeAll setupSpec $ afterAll tearDownSpec $
-      User.spec
+    beforeAll setupSpec $ afterAll tearDownSpec $ do
+      describe "User" User.spec
+      describe "Task" Task.spec

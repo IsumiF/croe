@@ -6,6 +6,12 @@
 module CROE.Common.API.Task
   ( API
   , NewTaskRequest(..)
+  , newTaskRequest_reward
+  , newTaskRequest_title
+  , newTaskRequest_campusId
+  , newTaskRequest_duration
+  , newTaskRequest_abstract
+  , newTaskRequest_description
   , module CROE.Common.Task
   ) where
 
@@ -31,6 +37,7 @@ data NewTaskRequest = NewTaskRequest
   , _newTaskRequest_title       :: Text
   , _newTaskRequest_campusId    :: Int64
   , _newTaskRequest_duration    :: (UTCTime, UTCTime)
+  , _newTaskRequest_abstract    :: Text
   , _newTaskRequest_description :: Text
   } deriving (Show, Eq, Generic)
 

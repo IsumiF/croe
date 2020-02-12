@@ -1,6 +1,6 @@
 -- MySQL dump 10.13  Distrib 5.7.28, for macos10.14 (x86_64)
 --
--- Host: 127.0.0.1    Database: croe
+-- Host: localhost    Database: croe
 -- ------------------------------------------------------
 -- Server version	5.7.28
 
@@ -15,7 +15,32 @@
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
-USE croe_test;
+--
+-- Table structure for table `review`
+--
+
+DROP TABLE IF EXISTS `review`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `review` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `user` bigint(20) NOT NULL,
+  `rating` double NOT NULL,
+  `message` text CHARACTER SET utf8,
+  PRIMARY KEY (`id`),
+  KEY `review_user_fkey` (`user`),
+  CONSTRAINT `review_user_fkey` FOREIGN KEY (`user`) REFERENCES `user` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `review`
+--
+
+LOCK TABLES `review` WRITE;
+/*!40000 ALTER TABLE `review` DISABLE KEYS */;
+/*!40000 ALTER TABLE `review` ENABLE KEYS */;
+UNLOCK TABLES;
 
 --
 -- Table structure for table `school`
@@ -96,6 +121,43 @@ INSERT INTO `school_domain` VALUES (1,1,'mail2.sysu.edu.cn'),(2,2,'gmail.com');
 UNLOCK TABLES;
 
 --
+-- Table structure for table `task`
+--
+
+DROP TABLE IF EXISTS `task`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `task` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `current_status` text CHARACTER SET utf8 NOT NULL,
+  `creator` bigint(20) NOT NULL,
+  `taker` bigint(20) DEFAULT NULL,
+  `reward` bigint(20) NOT NULL,
+  `title` text CHARACTER SET utf8 NOT NULL,
+  `location` bigint(20) NOT NULL,
+  `duration` text CHARACTER SET utf8 NOT NULL,
+  `abstract` text CHARACTER SET utf8 NOT NULL,
+  `description_key` text CHARACTER SET utf8 NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `task_creator_fkey` (`creator`),
+  KEY `task_taker_fkey` (`taker`),
+  KEY `task_location_fkey` (`location`),
+  CONSTRAINT `task_creator_fkey` FOREIGN KEY (`creator`) REFERENCES `user` (`id`),
+  CONSTRAINT `task_location_fkey` FOREIGN KEY (`location`) REFERENCES `school_campus` (`id`),
+  CONSTRAINT `task_taker_fkey` FOREIGN KEY (`taker`) REFERENCES `user` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `task`
+--
+
+LOCK TABLES `task` WRITE;
+/*!40000 ALTER TABLE `task` DISABLE KEYS */;
+/*!40000 ALTER TABLE `task` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `user`
 --
 
@@ -108,6 +170,7 @@ CREATE TABLE `user` (
   `name` text CHARACTER SET utf8 NOT NULL,
   `hashed_password` blob NOT NULL,
   `role` text CHARACTER SET utf8 NOT NULL,
+  `balance` bigint(20) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_user_email` (`email`(200))
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=latin1;
@@ -119,7 +182,7 @@ CREATE TABLE `user` (
 
 LOCK TABLES `user` WRITE;
 /*!40000 ALTER TABLE `user` DISABLE KEYS */;
-INSERT INTO `user` VALUES (1,'fengzlin@mail2.sysu.edu.cn','fzl',0x243262243132246C66337348585353615964446B7561327A592F7347657A482F3734524D5352786D4A62586B4B596436744963796D743347376E7547,'User');
+INSERT INTO `user` VALUES (1,'fengzlin@mail2.sysu.edu.cn','fzl',0x2432622431322434757362424672336E4F516B6C7441716C58374F4B75344557504D564F317A61334167354570526B584D39516361784F4D2F305061,'RoleUser',0);
 /*!40000 ALTER TABLE `user` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -136,7 +199,7 @@ CREATE TABLE `user_registry` (
   `created_at` datetime NOT NULL,
   `code` text CHARACTER SET utf8 NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=39 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -145,7 +208,7 @@ CREATE TABLE `user_registry` (
 
 LOCK TABLES `user_registry` WRITE;
 /*!40000 ALTER TABLE `user_registry` DISABLE KEYS */;
-INSERT INTO `user_registry` VALUES (15,'steven172307@gmail.com','2020-01-14 13:40:15','650045'),(16,'steven172307@gmail.com','2020-01-26 03:31:37','248952');
+INSERT INTO `user_registry` VALUES (36,'fengzlin@mail2.sysu.edu.cn','2020-02-04 01:49:39','648713');
 /*!40000 ALTER TABLE `user_registry` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -158,4 +221,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2020-01-26 11:33:29
+-- Dump completed on 2020-02-12  8:10:50
