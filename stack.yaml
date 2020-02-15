@@ -23,6 +23,7 @@ extra-deps:
 - zenc-0.1.1
 - polysemy-1.2.3.0
 - polysemy-plugin-0.2.4.0
+- req-3.1.0
 - git: https://github.com/isumif/servant-reflex.git
   commit: 0f29197c52b82418685765d61c784da9422dbbad
 - git: https://github.com/reflex-frp/reflex-dom-contrib.git

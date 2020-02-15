@@ -73,15 +73,15 @@ SchoolCampus
   name Text
   deriving Show
 Task
-	currentStatus TaskStatus
-	creator UserId
+  currentStatus TaskStatus
+  creator UserId
   taker UserId Maybe
-	reward Word64
-	title Text
-	location SchoolCampusId
-	duration Duration
+  reward Word64
+  title Text
+  location SchoolCampusId
+  duration Duration
   abstract Text
-	descriptionKey Text
+  descriptionKey Text
   deriving Show
 Review
   user UserId

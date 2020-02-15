@@ -7,6 +7,7 @@ module CROE.Backend.Persist.Class
   , module Database.Persist.Types
   , ConnectionPool
   , withConn
+  , Connection
   , Transactional
   , transactionUndo
   , ReadEntity

@@ -6,10 +6,11 @@ maintainer: "fengzelin.isumi@bytedance.com"
 copyright: "2019 fengzelin.isumi"
 synopsis: croe backend
 category: Web
-description: Please see the README on GitLab at <https://code.byted.org/fengzelin.isumi/weekly-report/blob/master/README.md>
+description: Please see the README on GitHub at <https://github.com/isumif/croe>
 
 ghc-options:
   - -Wall
+  # Disable this when building haddock
   - -fplugin=Polysemy.Plugin
   # Enable these when building haddock
   # - -fdefer-type-errors
@@ -60,10 +61,13 @@ dependencies:
   - polysemy
   - polysemy-plugin
   - random
+  - req
   - resource-pool
+  - scientific
   - servant
   - servant-client
   - servant-server
+  - string-interpolate
   - string-interpolate
   - temporary
   - text

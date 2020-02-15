@@ -14,43 +14,47 @@ module CROE.Backend.Env
 
 import           Data.Aeson
 import           Data.Bifunctor
-import           Data.ByteString                  (ByteString)
-import qualified Data.ByteString.Lazy             as LBS
-import           Data.Function                    ((&))
-import           Data.Text                        (Text)
-import qualified Data.Text                        as T
-import           GHC.Generics                     (Generic)
+import           Data.ByteString                          (ByteString)
+import qualified Data.ByteString.Lazy                     as LBS
+import           Data.Function                            ((&))
+import           Data.Text                                (Text)
+import qualified Data.Text                                as T
+import           GHC.Generics                             (Generic)
 import           Polysemy
 
-import qualified CROE.Backend.Clock.Base          as Clock
+import qualified CROE.Backend.Clock.Base                  as Clock
 import           CROE.Backend.Clock.Class
-import qualified CROE.Backend.Logger.Base         as Logger
+import qualified CROE.Backend.Logger.Base                 as Logger
 import           CROE.Backend.Logger.Class
-import qualified CROE.Backend.Mail.Base           as Mail
-import qualified CROE.Backend.Mail.Class          as Mail
-import qualified CROE.Backend.ObjectStorage.Base  as ObjectStorage
+import qualified CROE.Backend.Mail.Base                   as Mail
+import qualified CROE.Backend.Mail.Class                  as Mail
+import qualified CROE.Backend.ObjectStorage.Base          as ObjectStorage
 import           CROE.Backend.ObjectStorage.Class
-import qualified CROE.Backend.Persist.Base        as Persist
-import qualified CROE.Backend.Persist.Class       as Persist
+import qualified CROE.Backend.Persist.Base                as Persist
+import qualified CROE.Backend.Persist.Class               as Persist
 import           CROE.Backend.Random.Base
-import qualified CROE.Backend.Service.Auth.Base   as AuthService
+import qualified CROE.Backend.Service.Auth.Base           as AuthService
 import           CROE.Backend.Service.Auth.Class
-import           CROE.Common.Util                 (aesonOptions)
+import qualified CROE.Backend.Service.Elasticsearch.Base  as EsService
+import           CROE.Backend.Service.Elasticsearch.Class
+import           CROE.Common.Util                         (aesonOptions)
 
 data Env = Env
-  { _env_persist       :: Persist.Env
-  , _env_logger        :: Logger.Env
-  , _env_mail          :: Mail.Env
-  , _env_authService   :: AuthService.Env
-  , _env_objectStorage :: ObjectStorage.Env
+  { _env_persist              :: Persist.Env
+  , _env_logger               :: Logger.Env
+  , _env_mail                 :: Mail.Env
+  , _env_authService          :: AuthService.Env
+  , _env_objectStorage        :: ObjectStorage.Env
+  , _env_elasticsearchService :: EsService.Config
   }
 
 data Config = Config
-  { _config_persist       :: Persist.Config
-  , _config_logger        :: Logger.Config
-  , _config_mail          :: Mail.Config
-  , _config_authService   :: AuthService.Config
-  , _config_objectStorage :: ObjectStorage.Config
+  { _config_persist              :: Persist.Config
+  , _config_logger               :: Logger.Config
+  , _config_mail                 :: Mail.Config
+  , _config_authService          :: AuthService.Config
+  , _config_objectStorage        :: ObjectStorage.Config
+  , _config_elasticsearchService :: EsService.Config
   } deriving Generic
 
 readConfig :: ByteString -> Either Text Config
@@ -66,6 +70,7 @@ withEnv c f =
       let _env_mail = Mail.newEnv (_config_mail c)
       _env_authService <- AuthService.newEnv (_config_authService c)
       let _env_objectStorage = ObjectStorage.newEnv (_config_objectStorage c)
+          _env_elasticsearchService = _config_elasticsearchService c
           env = Env{..}
       f env
 
@@ -81,9 +86,14 @@ type AppEffects =
    , Persist.WriteEntity Persist.School
    , Persist.ReadEntity Persist.SchoolDomain
    , Persist.WriteEntity Persist.SchoolDomain
+   , Persist.ReadEntity Persist.SchoolCampus
+   , Persist.WriteEntity Persist.SchoolCampus
    , Persist.ReadEntity Persist.Task
    , Persist.WriteEntity Persist.Task
+   , Persist.ReadEntity Persist.Review
+   , Persist.WriteEntity Persist.Review
    , Mail.Client
+   , Elasticsearch
    , ObjectStorage
    , Clock
    , RandomService
@@ -106,7 +116,12 @@ runApp Env{..} app = app
     & Persist.runWriteEntity
     & Persist.runReadEntity
     & Persist.runWriteEntity
+    & Persist.runReadEntity
+    & Persist.runWriteEntity
+    & Persist.runReadEntity
+    & Persist.runWriteEntity
     & Mail.runClient _env_mail
+    & EsService.runElasticsearch _env_elasticsearchService
     & ObjectStorage.runLocalFileSystem _env_objectStorage
     & Clock.runClock
     & runRandomService

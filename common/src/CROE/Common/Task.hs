@@ -1,26 +1,26 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 module CROE.Common.Task
-  ( TaskOverview(..)
-  , taskOverview_title
-  , taskOverview_abstract
-  , taskOverview_reward
-  , taskOverview_creatorId
-  , taskOverview_creatorScore
-  , taskOverview_duration
-  , taskOverview_location
-  , taskOverview_takerId
-  , taskOverview_status
+  ( Task(..)
+  , task_title
+  , task_abstract
+  , task_reward
+  , task_creatorId
+  , task_creatorScore
+  , task_duration
+  , task_location
+  , task_takerId
+  , task_status
   , TaskStatus(..)
   , _TaskStatusReviewing
   , _TaskStatusPublished
   , _TaskStatusAccepted
   , _TaskStatusBeforeFinish
   , _TaskStatusFinished
-  , Task(..)
   ) where
 
 import           Control.Lens
+import           Data.Aeson
 import           Data.Int
 import           Data.Map.Strict  (Map)
 import qualified Data.Map.Strict  as Map
@@ -28,19 +28,19 @@ import           Data.Text        (Text)
 import           Data.Time
 import           Data.Word        (Word64)
 
-import           CROE.Common.Util (reverseMap)
+import           CROE.Common.Util (reverseMap, showt)
 
-data TaskOverview = TaskOverview
-  { _taskOverview_title        :: Text
-  , _taskOverview_abstract     :: Text
-  , _taskOverview_reward       :: Word64
-  , _taskOverview_creatorId    :: Int64
-  , _taskOverview_creatorScore :: Double
-  , _taskOverview_duration     :: (UTCTime, UTCTime)
-  , _taskOverview_location     :: Text
-  , _taskOverview_takerId      :: Int64
-  , _taskOverview_status       :: TaskStatus
-  }
+data Task = Task
+  { _task_title        :: Text
+  , _task_abstract     :: Text
+  , _task_reward       :: Word64
+  , _task_creatorId    :: Int64
+  , _task_creatorScore :: Maybe Double
+  , _task_duration     :: (UTCTime, UTCTime)
+  , _task_location     :: Text
+  , _task_takerId      :: Maybe Int64
+  , _task_status       :: TaskStatus
+  } deriving (Show, Eq)
 
 data TaskStatus = TaskStatusReviewing
                 | TaskStatusPublished
@@ -67,10 +67,8 @@ instance Show TaskStatus where
 instance Read TaskStatus where
   readsPrec _ str = maybe [] (\r -> [(r, "")]) (strToStatus Map.!? str)
 
-data Task = Task
-  {
-  }
+instance ToJSON TaskStatus where
+  toJSON a = String (showt a)
 
-makeLenses ''TaskOverview
-makePrisms ''TaskStatus
 makeLenses ''Task
+makePrisms ''TaskStatus

@@ -1,0 +1,36 @@
+{
+  "mappings": {
+    "properties": {
+      "title": {
+        "type": "text",
+        "analyzer": "ik_smart"
+      },
+      "abstract": {
+        "type": "text",
+        "analyzer": "ik_smart"
+      },
+      "reward": {
+        "type": "long"
+      },
+      "creatorId": {
+        "type": "long"
+      },
+      "creatorScore": {
+        "type": "double"
+      },
+      "duration": {
+        "type": "date_range"
+      },
+      "location": {
+        "type": "text",
+        "analyzer": "ik_smart"
+      },
+      "takerId": {
+        "type": "long"
+      },
+      "status": {
+        "type": "keyword"
+      }
+    }
+  }
+}

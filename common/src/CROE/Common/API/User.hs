@@ -5,9 +5,6 @@
 
 module CROE.Common.API.User
   ( API
-  , User(..)
-  , user_email
-  , user_name
   , RegisterForm(..)
   , registerForm_user
   , registerForm_password
