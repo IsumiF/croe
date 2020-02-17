@@ -27,10 +27,26 @@ import           Servant.API
 import           CROE.Common.Task
 import           CROE.Common.Util (aesonOptions)
 
-type API = "task" :> APINew
+type API = "task" :>
+  ( APINew
+  :<|> APIUpdate
+  :<|> APIPublish
+  :<|> APIGet
+  )
 
 -- |returns task id
 type APINew = ReqBody '[JSON] NewTaskRequest :> Post '[JSON] Int64
+
+type APIUpdate = Capture "id" Int64
+  :> ReqBody '[JSON] NewTaskRequest
+  :> Put '[JSON] NoContent
+
+type APIPublish = Capture "id" Int64
+  :> "publish"
+  :> Post '[JSON] NoContent
+
+type APIGet = Capture "id" Int64
+  :> Get '[JSON] TaskDetail
 
 data NewTaskRequest = NewTaskRequest
   { _newTaskRequest_reward      :: Word64

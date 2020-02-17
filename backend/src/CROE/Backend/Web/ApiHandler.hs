@@ -25,4 +25,7 @@ apiHandler =
     :<|> ExceptT . User.validateEmail
     ) :<|> (
       \user -> ExceptT . Task.newTask user
+        :<|> (\a b -> ExceptT $ Task.updateTask user a b)
+        :<|> ExceptT . Task.publishTask user
+        :<|> ExceptT . Task.getTask user
     )

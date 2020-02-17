@@ -85,6 +85,7 @@ Task
   deriving Show
 Review
   user UserId
+  from UserId Maybe
   rating Double
   message Text Maybe
   deriving Show

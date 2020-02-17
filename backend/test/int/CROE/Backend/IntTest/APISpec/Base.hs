@@ -23,6 +23,9 @@ module CROE.Backend.IntTest.APISpec.Base
   , protectedClient_task
   , TaskClient(..)
   , taskClient_newTask
+  , taskClient_updateTask
+  , taskClient_publishTask
+  , taskClient_getTask
   ) where
 
 import           Control.Concurrent        (ThreadId, forkIO, throwTo)
@@ -96,7 +99,11 @@ servantClient =
       _client_user = UserClient{..}
 
       _client_protected user =
-        let _taskClient_newTask = protected user
+        let _taskClient_newTask
+              :<|> _taskClient_updateTask
+              :<|> _taskClient_publishTask
+              :<|> _taskClient_getTask
+                = protected user
             _protectedClient_task = TaskClient{..}
          in ProtectedClient{..}
    in Client{..}
@@ -119,7 +126,10 @@ data ProtectedClient = ProtectedClient
   }
 
 data TaskClient = TaskClient
-  { _taskClient_newTask :: NewTaskRequest -> ClientM Int64
+  { _taskClient_newTask     :: NewTaskRequest -> ClientM Int64
+  , _taskClient_updateTask  :: Int64 -> NewTaskRequest -> ClientM NoContent
+  , _taskClient_publishTask :: Int64 -> ClientM NoContent
+  , _taskClient_getTask     :: Int64 -> ClientM TaskDetail
   }
 
 makeLenses ''Client

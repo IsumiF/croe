@@ -1,6 +1,6 @@
 .stack-work/
 /output/
-/local_scripts/
+/local/
 /backend/*.cabal
 dist-newstyle/
 /backend/config/*.json
