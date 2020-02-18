@@ -46,7 +46,10 @@ newClient (Config baseUrl) =
         _client_user = UserClient{..}
 
         _client_protected user =
-          let _taskClient_new = protected user
+          let _taskClient_new
+                :<|> _taskClient_update
+                :<|> _taskClient_publish
+                :<|> _taskClient_get = protected user
               _protectedClient_task = TaskClient{..}
            in ProtectedClient{..}
      in Client{..}

@@ -19,7 +19,6 @@ import           Servant.API
 import           Servant.Reflex
 
 import           CROE.Common.API.User
-import           CROE.Common.User
 import           CROE.Frontend.Client
 import           CROE.Frontend.User
 import           CROE.Frontend.Widget.Notification
