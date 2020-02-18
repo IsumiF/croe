@@ -67,13 +67,7 @@ newTask authUser request = do
                 descriptionKey = "task/" <> showt taskId' <> "/description"
             liftBool $ putBytes descriptionKey (T.encodeUtf8 (request ^. Common.newTaskRequest_description))
 
-            campus <- MaybeT $ Persist.get conn location
-            let schoolId = schoolCampusSchoolId campus
-            school <- MaybeT $ Persist.get conn schoolId
-            let locationStr = schoolName school <> " " <> schoolCampusName campus
-            creatorScore <- lift $ averageRate conn creator
-            let esTask = Common.Task title abstract reward (fromSqlKey creator)
-                  creatorScore duration locationStr Nothing (coerce currentStatus)
+            esTask <- MaybeT $ taskToCommon conn task
             liftBool $ ES.putTask (showt taskId') esTask
 
             lift $ Persist.update conn taskId [TaskDescriptionKey =. descriptionKey]
@@ -88,6 +82,8 @@ updateTask :: Members '[ Logger
                        , Persist.ConnectionPool
                        , Persist.Transactional
                        , Persist.ReadEntity User
+                       , Persist.ReadEntity Review
+                       , Persist.ReadEntity School
                        , Persist.ReadEntity SchoolCampus
                        , Persist.ReadEntity Task
                        , Persist.WriteEntity Task
@@ -99,30 +95,40 @@ updateTask :: Members '[ Logger
            -> Common.NewTaskRequest
            -> Sem r (Either ServerError NoContent)
 updateTask authUser taskId request =
-    Persist.withConn $ \conn -> runExceptT $ do
-      _ <- maybeToExceptT err404 . MaybeT $ Persist.get conn campusId
-      oldTask <- maybeToExceptT err404 . MaybeT $ Persist.get conn (toSqlKey taskId)
-      if taskCurrentStatus oldTask /= coerce Common.TaskStatusReviewing
-      then throwE err412
-      else do
-        owns <- lift $ ownsTask conn authUser oldTask
-        if not owns
-        then throwE err403
+    Persist.withConn $ \conn -> do
+      r <- runExceptT $ do
+        _ <- maybeToExceptT err404 . MaybeT $ Persist.get conn campusId
+        oldTask <- maybeToExceptT err404 . MaybeT $ Persist.get conn (toSqlKey taskId)
+        if taskCurrentStatus oldTask /= coerce Common.TaskStatusReviewing
+        then throwE err412
         else do
-          let descriptionKey = taskDescriptionKey oldTask
-          ok <- lift $ putBytes descriptionKey (T.encodeUtf8 description)
-          if not ok
-          then throwE err500
+          owns <- lift $ ownsTask conn authUser oldTask
+          if not owns
+          then throwE err403
           else do
-            lift $ Persist.update conn (toSqlKey taskId)
-              [ TaskReward =. reward
-              , TaskTitle =. title
-              , TaskLocation =. campusId
-              , TaskDuration =. duration
-              , TaskAbstract =. abstract
-              , TaskDescriptionKey =. descriptionKey
-              ]
-            pure NoContent
+            let descriptionKey = taskDescriptionKey oldTask
+            ok <- lift $ putBytes descriptionKey (T.encodeUtf8 description)
+            if not ok
+            then throwE err500
+            else do
+              lift $ Persist.update conn (toSqlKey taskId)
+                [ TaskReward =. reward
+                , TaskTitle =. title
+                , TaskLocation =. campusId
+                , TaskDuration =. duration
+                , TaskAbstract =. abstract
+                , TaskDescriptionKey =. descriptionKey
+                ]
+              newTask' <- maybeToExceptT err500 . MaybeT $ Persist.get conn (toSqlKey taskId)
+              esTask <- maybeToExceptT err500 . MaybeT $ taskToCommon conn newTask'
+              esOk <- lift $ ES.putTask (showt taskId) esTask
+              if not esOk
+              then throwE err500
+              else pure NoContent
+      case r of
+        Left _  -> Persist.transactionUndo conn
+        Right _ -> pure ()
+      pure r
   where
     reward = request ^. Common.newTaskRequest_reward
     title = request ^. Common.newTaskRequest_title
@@ -136,6 +142,7 @@ publishTask :: Members '[ Logger
                         , Persist.ReadEntity User
                         , Persist.ReadEntity Task
                         , Persist.WriteEntity Task
+                        , ES.Elasticsearch
                         ] r
             => Common.User
             -> Int64
@@ -143,15 +150,13 @@ publishTask :: Members '[ Logger
 publishTask authUser taskId =
     Persist.withConn $ \conn -> runExceptT $ do
       task <- maybeToExceptT err404 . MaybeT $ Persist.get conn taskId'
-      owns <- lift $ ownsTask conn authUser task
-      if not owns
-      then throwE err403
-      else
-        if taskCurrentStatus task /= coerce Common.TaskStatusReviewing
-        then throwE err412
-        else do
-          lift $ Persist.update conn taskId' [TaskCurrentStatus =. coerce Common.TaskStatusPublished]
-          pure NoContent
+      maybeToExceptT err403 $ liftBool $ ownsTask conn authUser task
+      if taskCurrentStatus task /= coerce Common.TaskStatusReviewing
+      then throwE err412
+      else do
+        maybeToExceptT err500 $ liftBool $ ES.updateTaskStatus (showt taskId) Common.TaskStatusPublished
+        lift $ Persist.update conn taskId' [TaskCurrentStatus =. coerce Common.TaskStatusPublished]
+        pure NoContent
   where
     taskId' = toSqlKey taskId
 
@@ -208,3 +213,28 @@ averageRate conn key = do
     if null ratings
     then pure Nothing
     else pure . Just $ sum ratings / fromIntegral (length ratings)
+
+taskToCommon :: Members '[ Persist.ReadEntity SchoolCampus
+                         , Persist.ReadEntity School
+                         , Persist.ReadEntity Review
+                         ] r
+             => Persist.Connection
+             -> Task
+             -> Sem r (Maybe Common.Task)
+taskToCommon conn Task{..} = runMaybeT $ do
+    campus <- MaybeT $ Persist.get conn taskLocation
+    let schoolId = schoolCampusSchoolId campus
+    school <- MaybeT $ Persist.get conn schoolId
+    let locationStr = schoolName school <> " " <> schoolCampusName campus
+    creatorScore <- lift $ averageRate conn taskCreator
+    pure $ Common.Task
+      { Common._task_title = taskTitle
+      , Common._task_abstract = taskAbstract
+      , Common._task_reward = taskReward
+      , Common._task_creatorId = fromSqlKey taskCreator
+      , Common._task_creatorScore = creatorScore
+      , Common._task_duration = taskDuration
+      , Common._task_location = locationStr
+      , Common._task_takerId = fromSqlKey <$> taskTaker
+      , Common._task_status = coerce taskCurrentStatus
+      }

@@ -68,7 +68,7 @@ runLogger :: Member (Embed IO) r
 runLogger (Env (Config logLevel) logger) = interpret $ \case
     PrintLog level str ->
       let levelStr = showLogLevel level
-       in when (level >= logLevel) $
+       in when (level >= logLevel) $ do
             embed $ logger $ \formattedTime ->
               toLogStr (printf "[%s] [%s] " (T.decodeUtf8 formattedTime) levelStr :: String)
               <> toLogStr str

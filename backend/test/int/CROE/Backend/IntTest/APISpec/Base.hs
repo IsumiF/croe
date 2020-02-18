@@ -28,7 +28,8 @@ module CROE.Backend.IntTest.APISpec.Base
   , taskClient_getTask
   ) where
 
-import           Control.Concurrent        (ThreadId, forkIO, throwTo)
+import           Control.Concurrent        (ThreadId, forkIO, threadDelay,
+                                            throwTo)
 import           Control.Exception         (AsyncException (UserInterrupt))
 import           Control.Lens
 import           Data.Int
@@ -66,7 +67,10 @@ setupSpec = do
     pure $ Server clientEnv threadId
 
 tearDownSpec :: Server -> IO ()
-tearDownSpec server = throwTo threadId UserInterrupt
+tearDownSpec server = do
+    -- wait for logs to output
+    threadDelay (2000 * 1000)
+    throwTo threadId UserInterrupt
   where
     threadId = _server_threadId server
 

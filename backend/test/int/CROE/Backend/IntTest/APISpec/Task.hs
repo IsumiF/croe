@@ -28,7 +28,10 @@ spec =
           lift $ createdTask ^. taskDetail_title `shouldBe` "任务名"
           lift $ createdTask ^. taskDetail_description `shouldBe` "一些描述"
           void $ liftEitherMShow $ runClientM' server $
-            updateTask taskId newTaskRequest { _newTaskRequest_description = "修改后的描述" }
+            updateTask taskId newTaskRequest
+              { _newTaskRequest_description = "修改后的描述"
+              , _newTaskRequest_abstract = "修改后的摘要"
+              }
           updatedTask <- liftEitherMShow $ runClientM' server $
             getTask taskId
           lift $ updatedTask ^. taskDetail_description `shouldBe` "修改后的描述"

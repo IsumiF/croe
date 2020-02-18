@@ -35,31 +35,72 @@ runElasticsearch :: Members '[Embed IO, Logger] r
                  -> Sem r a
 runElasticsearch config = interpret $ \case
   PutTask docId task -> putTaskImpl config docId task
+  UpdateTaskStatus docId taskStatus -> updateTaskStatusImpl config docId taskStatus
+
+reqOptions :: Config -> Option 'Http
+reqOptions config = port port' <> basicAuthUnsafe (T.encodeUtf8 username) (T.encodeUtf8 password)
+  where
+    port' = _config_port config
+    username = _config_username config
+    password = _config_password config
 
 putTaskImpl :: Members '[Embed IO, Logger] r
             => Config
             -> Text
             -> Task
             -> Sem r Bool
-putTaskImpl (Config host port' username password indexPrefix) docId task = do
+putTaskImpl config docId task = do
     respEither <- embed $ try $ runReq defaultHttpConfig $
       req PUT
         (http host /: (indexPrefix <> "task") /: "_doc" /~ docId)
         (ReqBodyJson (taskToDoc task))
         ignoreResponse
-        ( port port'
-        <> basicAuthUnsafe (T.encodeUtf8 username) (T.encodeUtf8 password))
+        (reqOptions config)
     case respEither of
       Left (e :: HttpException) -> do
         printLogt LevelError [i|fail to save task to elasticsearch, task: #{task}, id: #{docId}, excpetion: #{e}|]
         pure False
       Right resp -> do
         let status = responseStatusCode resp
-        if status /= 201
+        if not (statusIsSuccess status)
         then do
           printLogt LevelError [i|fail to save task to elasticsearch, task: #{task}, id: #{docId}, status: #{status}|]
           pure False
         else pure True
+  where
+    host = _config_host config
+    indexPrefix = _config_indexPrefix config
+
+updateTaskStatusImpl :: Members '[Embed IO, Logger] r
+                     => Config
+                     -> Text
+                     -> TaskStatus
+                     -> Sem r Bool
+updateTaskStatusImpl config@(Config host _ _ _ indexPrefix) taskId status = do
+    respEither <- embed $ try $ runReq defaultHttpConfig $
+      req POST
+        (http host /: (indexPrefix <> "task") /: "_update" /~ taskId)
+        (ReqBodyJson updateStatusReqBody)
+        ignoreResponse
+        (reqOptions config)
+    case respEither of
+      Left (e :: HttpException) -> do
+        printLogt LevelError [i|fail to update status of task, id: #{taskId}, status: #{status}, exception: #{e}|]
+        pure False
+      Right resp -> do
+        let httpStatus = responseStatusCode resp
+        if statusIsSuccess httpStatus
+        then pure True
+        else do
+          printLogt LevelError [i|fail to update status of task, id: #{taskId}, status: #{status}, http status: #{httpStatus}|]
+          pure False
+  where
+    updateStatusReqBody = object
+      [ "doc" Aeson..= object [ "status" Aeson..= status ]
+      ]
+
+statusIsSuccess :: Int -> Bool
+statusIsSuccess status = status >= 200 && status < 300
 
 instance FromJSON Config where
   parseJSON = genericParseJSON aesonOptions
