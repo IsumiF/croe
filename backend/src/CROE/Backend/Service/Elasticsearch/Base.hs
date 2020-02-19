@@ -1,4 +1,5 @@
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE StrictData  #-}
 
 module CROE.Backend.Service.Elasticsearch.Base
   ( Config(..)
@@ -9,6 +10,9 @@ import           Control.Exception
 import           Control.Lens
 import           Data.Aeson                               hiding ((.=))
 import qualified Data.Aeson                               as Aeson
+import           Data.Aeson.Types                         (Pair)
+import           Data.Coerce
+import           Data.Proxy                               (Proxy)
 import           Data.String.Interpolate
 import           Data.Text                                (Text)
 import qualified Data.Text.Encoding                       as T
@@ -34,6 +38,7 @@ runElasticsearch :: Members '[Embed IO, Logger] r
                  -> Sem (Elasticsearch : r) a
                  -> Sem r a
 runElasticsearch config = interpret $ \case
+  SearchTask condition -> searchTaskImpl config condition
   PutTask docId task -> putTaskImpl config docId task
   UpdateTaskStatus docId taskStatus -> updateTaskStatusImpl config docId taskStatus
 
@@ -99,11 +104,72 @@ updateTaskStatusImpl config@(Config host _ _ _ indexPrefix) taskId status = do
       [ "doc" Aeson..= object [ "status" Aeson..= status ]
       ]
 
+searchTaskImpl :: Members '[Embed IO, Logger] r
+               => Config
+               -> TaskQueryCondition
+               -> Sem r TaskSearchResult
+searchTaskImpl config@(Config host _ _ _ indexPrefix) queryCondition = do
+    respEither <- embed $ try $ runReq defaultHttpConfig $
+      req POST
+        (http host /: (indexPrefix <> "task") /: "_search")
+        (ReqBodyJson (queryConditionToEsJson queryCondition))
+        (jsonResponse :: Proxy (JsonResponse (SearchResponse TaskDoc)))
+        (reqOptions config)
+    case respEither of
+      Left (e :: HttpException) -> do
+        printLogt LevelError [i|es search failed with exception #{e}|]
+        pure emptyTaskSearchResult
+      Right resp -> do
+        let httpStatus = responseStatusCode resp
+        if not (statusIsSuccess httpStatus)
+        then do
+          printLogt LevelError [i|es search failed with http status #{httpStatus}|]
+          pure emptyTaskSearchResult
+        else do
+          let body = responseBody resp
+              hits = _searchResponse_hits body
+              total = _hits_total hits
+              taskHits = _hits_values hits
+              tasks = fmap (\(Hit tId task) -> (tId, coerce task)) taskHits
+          pure $ TaskSearchResult total tasks
+
 statusIsSuccess :: Int -> Bool
 statusIsSuccess status = status >= 200 && status < 300
 
 instance FromJSON Config where
   parseJSON = genericParseJSON aesonOptions
+
+newtype SearchResponse doc = SearchResponse
+  { _searchResponse_hits :: Hits doc
+  } deriving (Show, Eq, Generic)
+
+instance FromJSON doc => FromJSON (SearchResponse doc) where
+  parseJSON = genericParseJSON aesonOptions
+
+data Hits doc = Hits
+  { _hits_total  :: Integer
+  , _hits_values :: [Hit doc]
+  } deriving (Show, Eq)
+
+instance FromJSON doc => FromJSON (Hits doc) where
+  parseJSON = withObject "Hits" $ \o -> do
+    total <- o .: "total"
+    _hits_total <- withObject "Hits.total" (.: "value") total
+    _hits_values <- o .: "hits"
+    pure Hits{..}
+
+data Hit doc = Hit
+  { _hit__id     :: Text
+  , _hit__source :: doc
+  } deriving (Show, Eq, Generic)
+
+instance FromJSON doc => FromJSON (Hit doc) where
+  parseJSON = genericParseJSON aesonOptions
+
+newtype TaskDoc = TaskDoc Task
+
+instance ToJSON TaskDoc where
+  toJSON (TaskDoc task) = taskToDoc task
 
 taskToDoc :: Task -> Value
 taskToDoc task = object
@@ -118,6 +184,91 @@ taskToDoc task = object
         ]
       )
     , "location" Aeson..= (task ^. task_location)
+    , "campusId" Aeson..= (task ^. task_campusId)
     , "takerId" Aeson..= (task ^. task_takerId)
     , "status" Aeson..= (task ^. task_status)
     ]
+
+data Range a = Range
+  { _range_lte :: a
+  , _range_gte :: a
+  } deriving (Show, Eq, Generic)
+
+instance FromJSON a => FromJSON (Range a) where
+  parseJSON = genericParseJSON aesonOptions
+
+instance FromJSON TaskDoc where
+  parseJSON = withObject "TaskDoc" $ \o -> do
+    _task_title <- o .: "title"
+    _task_abstract <- o .: "abstract"
+    _task_reward <- o .: "reward"
+    _task_creatorId <- o .: "creatorId"
+    _task_creatorScore <- o .: "creatorScore"
+    Range lte gte <- o .: "duration"
+    let _task_duration = (gte, lte)
+    _task_location <- o .: "location"
+    _task_campusId <- o .: "campusId"
+    _task_takerId <- o .: "takerId"
+    _task_status <- o .: "status"
+    pure . TaskDoc $ Task{..}
+
+queryConditionToEsJson :: TaskQueryCondition -> Value
+queryConditionToEsJson queryCondition = object
+    [ "query" Aeson..= object
+        [ "bool" Aeson..= object
+            [ "must" Aeson..= object
+                [ strQueryToEsJson (queryCondition ^. taskQueryCondition_query) ]
+            , "filter" Aeson..= filters
+            ]
+        ]
+    , "from" Aeson..= (queryCondition ^. taskQueryCondition_offset)
+    , "size" Aeson..= (queryCondition ^. taskQueryCondition_limit)
+    ]
+  where
+    filters = termQuery (queryConditionTerms queryCondition)
+      <> queryConditionRanges queryCondition
+
+strQueryToEsJson :: Text -> Pair
+strQueryToEsJson strQuery =
+    "multi_match" Aeson..= object
+      [ "query" Aeson..= strQuery
+      , "fields" Aeson..= (["title^3", "abstract"] :: [Text])
+      , "type" Aeson..= ("most_fields" :: Text)
+      ]
+
+queryConditionTerms :: TaskQueryCondition -> [(Text, Value)]
+queryConditionTerms TaskQueryCondition{..} = filterJustSnd
+    [ ("reward", fmap toJSON _taskQueryCondition_rewardRange)
+    , ("campusId", fmap toJSON _taskQueryCondition_campusId)
+    , ("status", fmap toJSON _taskQueryCondition_status)
+    , ("creatorId", fmap toJSON _taskQueryCondition_creatorId)
+    , ("takerId", fmap toJSON _taskQueryCondition_takerId)
+    ]
+
+filterJustSnd :: [(a, Maybe b)] -> [(a, b)]
+filterJustSnd [] = []
+filterJustSnd ((x, y) : zs) = case y of
+    Nothing -> filterJustSnd zs
+    Just y' -> (x, y') : filterJustSnd zs
+
+termQuery :: [(Text, Value)] -> [Value]
+termQuery = fmap filterToEsJson
+  where
+    filterToEsJson (fieldName, value) = object
+      [ "term" Aeson..= object [ fieldName Aeson..= value ]
+      ]
+
+queryConditionRanges :: TaskQueryCondition -> [Value]
+queryConditionRanges queryCondition =
+    case rewardRange of
+      Nothing -> []
+      Just (lower, higher) -> pure $ object
+        [ "range" Aeson..= object
+            [ "reward" Aeson..= object
+                [ "gte" Aeson..= lower
+                , "lte" Aeson..= higher
+                ]
+            ]
+        ]
+  where
+    rewardRange = queryCondition ^. taskQueryCondition_rewardRange

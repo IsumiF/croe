@@ -5,6 +5,7 @@ module CROE.Backend.IntTest.APISpec.Task
 import           Control.Lens
 import           Control.Monad.Trans.Class
 import           Control.Monad.Trans.Except
+import           Data.Default
 import           Data.Functor                      (void)
 import           Data.Time
 import           Servant.API
@@ -40,6 +41,15 @@ spec =
           publishedTask <- liftEitherMShow $ runClientM' server $
             getTask taskId
           lift $ publishedTask ^. taskDetail_status `shouldBe` TaskStatusPublished
+          taskSearchResult <- liftEitherMShow $ runClientM' server $
+            searchTask $ def & taskQueryCondition_query .~ "摘要"
+                             & taskQueryCondition_limit .~ 1
+                             & (taskQueryCondition_status ?~ TaskStatusPublished)
+          let total = taskSearchResult ^. taskSearchResult_total
+              tasks = taskSearchResult ^. taskSearchResult_tasks
+          lift $ do
+            total `shouldSatisfy` (>= 1)
+            tasks `shouldSatisfy` (\t -> length t == 1)
   where
     authData = BasicAuthData "fengzlin@mail2.sysu.edu.cn" "123"
     taskClient = _protectedClient_task $ _client_protected servantClient authData
@@ -47,6 +57,7 @@ spec =
     updateTask = _taskClient_updateTask taskClient
     publishTask = _taskClient_publishTask taskClient
     getTask = _taskClient_getTask taskClient
+    searchTask = _taskClient_search taskClient
 
 liftEitherMShow :: (Show e, Functor m) => m (Either e a) -> ExceptT String m a
 liftEitherMShow = withExceptT show . ExceptT

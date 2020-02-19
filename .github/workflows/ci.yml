@@ -46,4 +46,7 @@ jobs:
       - name: Build Backend
         run: make backend
       - name: Run Tests
-        run: sudo make test
+        run: |
+          sudo mkdir -p /var/croe
+          sudo chown -R ${{ github.actor }} /var/croe
+          make test

@@ -6,6 +6,7 @@ module CROE.Backend.Service.Task
   , updateTask
   , publishTask
   , getTask
+  , searchTask
   ) where
 
 import           Control.Lens                             hiding (Review)
@@ -190,6 +191,15 @@ getTask _ taskId =
   where
     taskId' = toSqlKey taskId
 
+searchTask :: Members '[ ES.Elasticsearch
+                       ] r
+           => Common.User
+           -> Common.TaskQueryCondition
+           -> Sem r (Either ServerError Common.TaskSearchResult)
+searchTask _ queryCondition = do
+    searchResult <- ES.searchTask queryCondition
+    pure (Right searchResult)
+
 ownsTask :: Member (Persist.ReadEntity User) r
          => Persist.Connection
          -> Common.User
@@ -235,6 +245,7 @@ taskToCommon conn Task{..} = runMaybeT $ do
       , Common._task_creatorScore = creatorScore
       , Common._task_duration = taskDuration
       , Common._task_location = locationStr
+      , Common._task_campusId = fromSqlKey taskLocation
       , Common._task_takerId = fromSqlKey <$> taskTaker
       , Common._task_status = coerce taskCurrentStatus
       }

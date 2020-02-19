@@ -8,6 +8,7 @@ module CROE.Frontend.Client.Protected
   , taskClient_update
   , taskClient_publish
   , taskClient_get
+  , taskClient_search
   ) where
 
 import           Control.Lens
@@ -37,6 +38,9 @@ data TaskClient t m = TaskClient
   , _taskClient_get :: Dynamic t (Either Text Int64)
                     -> Event t ()
                     -> m (Event t (ReqResult () TaskDetail))
+  , _taskClient_search :: Dynamic t (Either Text TaskQueryCondition)
+                       -> Event t ()
+                       -> m (Event t (ReqResult () TaskSearchResult))
   }
 
 makeLenses ''ProtectedClient

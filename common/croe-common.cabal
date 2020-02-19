@@ -25,6 +25,7 @@ library
     , aeson
     , bytestring
     , containers
+    , data-default
     , email-validate
     , lens
     , servant

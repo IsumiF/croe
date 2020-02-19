@@ -28,4 +28,5 @@ apiHandler =
         :<|> (\a b -> ExceptT $ Task.updateTask user a b)
         :<|> ExceptT . Task.publishTask user
         :<|> ExceptT . Task.getTask user
+        :<|> ExceptT . Task.searchTask user
     )

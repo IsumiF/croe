@@ -1,8 +1,23 @@
-{-# LANGUAGE DeriveGeneric   #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE StrictData        #-}
+{-# LANGUAGE TemplateHaskell   #-}
 
 module CROE.Common.Task
-  ( Task(..)
+  ( TaskQueryCondition(..)
+  , taskQueryCondition_query
+  , taskQueryCondition_rewardRange
+  , taskQueryCondition_campusId
+  , taskQueryCondition_status
+  , taskQueryCondition_creatorId
+  , taskQueryCondition_takerId
+  , taskQueryCondition_limit
+  , taskQueryCondition_offset
+  , TaskSearchResult(..)
+  , taskSearchResult_total
+  , taskSearchResult_tasks
+  , emptyTaskSearchResult
+  , Task(..)
   , task_title
   , task_abstract
   , task_reward
@@ -10,6 +25,7 @@ module CROE.Common.Task
   , task_creatorScore
   , task_duration
   , task_location
+  , task_campusId
   , task_takerId
   , task_status
   , TaskDetail(..)
@@ -32,6 +48,7 @@ module CROE.Common.Task
 
 import           Control.Lens
 import           Data.Aeson
+import           Data.Default
 import           Data.Int
 import           Data.Map.Strict  (Map)
 import qualified Data.Map.Strict  as Map
@@ -44,6 +61,51 @@ import           Text.Read        (readMaybe)
 
 import           CROE.Common.Util (aesonOptions, reverseMap, showt)
 
+data TaskQueryCondition = TaskQueryCondition
+  { _taskQueryCondition_query       :: Text
+  , _taskQueryCondition_rewardRange :: Maybe (Word64, Word64)
+  , _taskQueryCondition_campusId    :: Maybe Int64
+  , _taskQueryCondition_status      :: Maybe TaskStatus
+  , _taskQueryCondition_creatorId   :: Maybe Int64
+  , _taskQueryCondition_takerId     :: Maybe Int64
+  , _taskQueryCondition_limit       :: Integer
+  , _taskQueryCondition_offset      :: Integer
+  } deriving (Show, Eq, Generic)
+
+instance Default TaskQueryCondition where
+  def = TaskQueryCondition
+    { _taskQueryCondition_query = ""
+    , _taskQueryCondition_rewardRange = Nothing
+    , _taskQueryCondition_campusId = Nothing
+    , _taskQueryCondition_status = Nothing
+    , _taskQueryCondition_creatorId = Nothing
+    , _taskQueryCondition_takerId = Nothing
+    , _taskQueryCondition_limit = 20
+    , _taskQueryCondition_offset = 0
+    }
+
+instance FromJSON TaskQueryCondition where
+  parseJSON = genericParseJSON aesonOptions
+
+instance ToJSON TaskQueryCondition where
+  toJSON = genericToJSON aesonOptions
+  toEncoding = genericToEncoding aesonOptions
+
+data TaskSearchResult = TaskSearchResult
+  { _taskSearchResult_total :: Integer
+  , _taskSearchResult_tasks :: [(Text, Task)]
+  } deriving (Show, Eq, Generic)
+
+emptyTaskSearchResult :: TaskSearchResult
+emptyTaskSearchResult = TaskSearchResult 0 []
+
+instance FromJSON TaskSearchResult where
+  parseJSON = genericParseJSON aesonOptions
+
+instance ToJSON TaskSearchResult where
+  toJSON = genericToJSON aesonOptions
+  toEncoding = genericToEncoding aesonOptions
+
 data Task = Task
   { _task_title        :: Text
   , _task_abstract     :: Text
@@ -51,7 +113,8 @@ data Task = Task
   , _task_creatorId    :: Int64
   , _task_creatorScore :: Maybe Double
   , _task_duration     :: (UTCTime, UTCTime)
-  , _task_location     :: Text
+  , _task_location     :: Text -- 学校名+校区名
+  , _task_campusId     :: Int64
   , _task_takerId      :: Maybe Int64
   , _task_status       :: TaskStatus
   } deriving (Show, Eq, Generic)
@@ -116,6 +179,8 @@ instance FromJSON TaskStatus where
       Just stat -> pure stat
       Nothing   -> fail "unexpected value"
 
+makeLenses ''TaskQueryCondition
+makeLenses ''TaskSearchResult
 makeLenses ''Task
 makeLenses ''TaskDetail
 makePrisms ''TaskStatus

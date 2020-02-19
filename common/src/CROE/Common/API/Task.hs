@@ -32,6 +32,7 @@ type API = "task" :>
   :<|> APIUpdate
   :<|> APIPublish
   :<|> APIGet
+  :<|> APISearch
   )
 
 -- |returns task id
@@ -47,6 +48,9 @@ type APIPublish = Capture "id" Int64
 
 type APIGet = Capture "id" Int64
   :> Get '[JSON] TaskDetail
+
+type APISearch = ReqBody '[JSON] TaskQueryCondition
+  :> Get '[JSON] TaskSearchResult
 
 data NewTaskRequest = NewTaskRequest
   { _newTaskRequest_reward      :: Word64

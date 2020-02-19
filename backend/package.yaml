@@ -40,6 +40,7 @@ dependencies:
   - containers
   - croe-common
   - cryptonite
+  - data-default
   - directory
   - fast-logger
   - file-embed
