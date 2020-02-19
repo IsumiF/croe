@@ -48,5 +48,5 @@ jobs:
       - name: Run Tests
         run: |
           sudo mkdir -p /var/croe
-          sudo chown -R ${{ github.actor }} /var/croe
+          sudo chown -R $USER /var/croe
           make test
