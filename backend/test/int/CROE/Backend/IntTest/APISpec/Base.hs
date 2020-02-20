@@ -21,12 +21,15 @@ module CROE.Backend.IntTest.APISpec.Base
   , userClient_getProfile
   , ProtectedClient(..)
   , protectedClient_task
+  , protectedClient_school
   , TaskClient(..)
   , taskClient_newTask
   , taskClient_updateTask
   , taskClient_publishTask
   , taskClient_getTask
   , taskClient_search
+  , SchoolClient(..)
+  , schoolClient_get
   ) where
 
 import           Control.Concurrent        (ThreadId, forkIO, threadDelay,
@@ -49,6 +52,7 @@ import           CROE.Backend.Main         (CmdArgs (..), mainWithArgs)
 import           CROE.Common.API
 import           CROE.Common.API.Task      hiding (API)
 import           CROE.Common.API.User      hiding (API)
+import           CROE.Common.School
 
 data Server = Server
   { _server_clientEnv :: ClientEnv
@@ -104,13 +108,15 @@ servantClient =
       _client_user = UserClient{..}
 
       _client_protected user =
-        let _taskClient_newTask
+        let ( _taskClient_newTask
               :<|> _taskClient_updateTask
               :<|> _taskClient_publishTask
               :<|> _taskClient_getTask
               :<|> _taskClient_search
+              ) :<|> _schoolClient_get
                 = protected user
             _protectedClient_task = TaskClient{..}
+            _protectedClient_school = SchoolClient{..}
          in ProtectedClient{..}
    in Client{..}
 
@@ -128,7 +134,8 @@ data UserClient = UserClient
   }
 
 data ProtectedClient = ProtectedClient
-  { _protectedClient_task :: TaskClient
+  { _protectedClient_task   :: TaskClient
+  , _protectedClient_school :: SchoolClient
   }
 
 data TaskClient = TaskClient
@@ -139,7 +146,12 @@ data TaskClient = TaskClient
   , _taskClient_search      :: TaskQueryCondition -> ClientM TaskSearchResult
   }
 
+data SchoolClient = SchoolClient
+  { _schoolClient_get :: ClientM [School]
+  }
+
 makeLenses ''Client
 makeLenses ''UserClient
 makeLenses ''ProtectedClient
 makeLenses ''TaskClient
+makeLenses ''SchoolClient

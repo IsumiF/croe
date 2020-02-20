@@ -11,8 +11,9 @@ import           Polysemy
 import           Servant
 
 import           CROE.Backend.Env
-import qualified CROE.Backend.Service.Task as Task
-import qualified CROE.Backend.Service.User as User
+import qualified CROE.Backend.Service.School as School
+import qualified CROE.Backend.Service.Task   as Task
+import qualified CROE.Backend.Service.User   as User
 import           CROE.Common.API
 
 apiHandler :: ServerT API (ExceptT ServerError (Sem AppEffects))
@@ -24,9 +25,12 @@ apiHandler =
     :<|> ExceptT . User.register
     :<|> ExceptT . User.validateEmail
     ) :<|> (
-      \user -> ExceptT . Task.newTask user
+      \user ->
+        ( ExceptT . Task.newTask user
         :<|> (\a b -> ExceptT $ Task.updateTask user a b)
         :<|> ExceptT . Task.publishTask user
         :<|> ExceptT . Task.getTask user
         :<|> ExceptT . Task.searchTask user
+        ) :<|>
+          ExceptT (School.getSchoolList user)
     )

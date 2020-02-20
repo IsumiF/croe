@@ -73,15 +73,15 @@ register :: Members '[ AuthService
                      ] r
          => Common.RegisterForm
          -> Sem r (Either ServerError NoContent)
-register (Common.RegisterForm user password code) = do
+register (Common.RegisterForm email password code) = do
     userRegistryEntity <- Persist.withConn $ \conn -> Persist.selectFirst conn
-            [ Persist.UserRegistryEmail ==. Common._user_email user
+            [ Persist.UserRegistryEmail ==. email
             , Persist.UserRegistryCode ==. code
             ] []
     case userRegistryEntity of
       Nothing -> pure . Left $ err403 { errBody = utf8LBS "验证码错误或已过期" }
       Just _ -> do
-        user' <- makeOrdinaryUser user password
+        user' <- newOrdinaryUser email password
         void $ Persist.withConn $ \conn ->
           Persist.upsert conn user' [Persist.UserHashedPassword =. Persist.userHashedPassword user']
         pure (Right NoContent)
@@ -122,10 +122,10 @@ verificationCodeMailBody :: Text
                          -> Text
 verificationCodeMailBody code = "验证码：" <> code <> "，30分钟内有效"
 
-makeOrdinaryUser :: Member AuthService r
-                 => Common.User
-                 -> Text -- ^password in cleartext
-                 -> Sem r Persist.User
-makeOrdinaryUser (Common.User email name role) password = do
+newOrdinaryUser :: Member AuthService r
+                => Text -- ^email
+                -> Text -- ^password in cleartext
+                -> Sem r Persist.User
+newOrdinaryUser email password = do
     hashed <- hashPassword (T.encodeUtf8 password)
-    pure $ Persist.User email name hashed (coerce role) 0
+    pure $ Persist.User email "新用户" hashed (coerce Common.RoleUser) 0

@@ -25,7 +25,6 @@ import           Servant.API
 import           Servant.Reflex
 
 import           CROE.Common.API.User
-import           CROE.Common.User
 
 data UserClient t m = UserClient
   { _putProfile    :: PutProfile t m

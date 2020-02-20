@@ -39,6 +39,7 @@ import           Data.Text                             (Text)
 import           Data.Time
 import           Data.Word                             (Word64)
 import           Database.Persist
+import           Database.Persist.Sql                  (fromSqlKey)
 import           Database.Persist.TH
 
 import           CROE.Backend.Persist.Types.Role
@@ -91,8 +92,9 @@ Review
   deriving Show
 |]
 
-userToCommon :: User -> Common.User
-userToCommon user = Common.User
+userToCommon :: Entity User -> Common.User
+userToCommon (Entity userId user) = Common.User
     (userEmail user)
     (userName user)
     (coerce (userRole user))
+    (fromSqlKey userId)

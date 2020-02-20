@@ -64,12 +64,11 @@ runService (Env cache) = interpret $ \case
           case entity' of
             Nothing     -> pure NoSuchUser
             Just entity -> do
-              let user = entityVal entity
-                  hash' = userHashedPassword (entityVal entity)
+              let hash' = userHashedPassword (entityVal entity)
                   isValid = BCrypt.validatePassword password hash'
                   result =
                     if isValid
-                    then Authorized $ userToCommon user
+                    then Authorized $ userToCommon entity
                     else BadPassword
               embed $ Cache.insert cache (CacheKey authData) result
               pure result

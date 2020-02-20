@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE StrictData        #-}
 {-# LANGUAGE TemplateHaskell   #-}
 
 module CROE.Common.User
@@ -7,6 +8,7 @@ module CROE.Common.User
   , user_email
   , user_name
   , user_role
+  , user_id
   , Role(..)
   , _RoleAdmin
   , _RoleUser
@@ -20,6 +22,7 @@ module CROE.Common.User
 import           Control.Lens
 import           Data.Aeson
 import           Data.ByteString     (ByteString)
+import           Data.Int
 import           Data.Map.Strict     (Map)
 import qualified Data.Map.Strict     as Map
 import           Data.Text           (Text)
@@ -33,6 +36,7 @@ data User = User
   { _user_email :: Text
   , _user_name  :: Text
   , _user_role  :: Role
+  , _user_id    :: Int64
   } deriving (Show, Eq, Generic)
 
 data Role = RoleAdmin | RoleUser

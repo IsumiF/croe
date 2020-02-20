@@ -1,12 +1,13 @@
 {-# LANGUAGE DataKinds       #-}
 {-# LANGUAGE DeriveGeneric   #-}
+{-# LANGUAGE StrictData      #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeOperators   #-}
 
 module CROE.Common.API.User
   ( API
   , RegisterForm(..)
-  , registerForm_user
+  , registerForm_email
   , registerForm_password
   , registerForm_code
   , module CROE.Common.User
@@ -32,7 +33,8 @@ type APIGetProfile = "profile"
   :> Get '[JSON] User
 
 type APIPutProfile = "profile"
-  :> ReqBody '[JSON] User :> Put '[JSON] NoContent
+  :> ReqBody '[JSON] User
+  :> Put '[JSON] NoContent
 
 type APIApplyCode = "apply_code"
   :> QueryParam "email" Text
@@ -48,7 +50,7 @@ type APIValidateEmail = "validate_email"
   :> Post '[JSON] Text
 
 data RegisterForm = RegisterForm
-  { _registerForm_user     :: User
+  { _registerForm_email    :: Text
   , _registerForm_password :: Text
   , _registerForm_code     :: Text
   } deriving (Show, Eq, Generic)

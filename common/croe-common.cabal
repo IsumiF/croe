@@ -17,8 +17,10 @@ library
     CROE.Common.API
     CROE.Common.API.User
     CROE.Common.API.Task
+    CROE.Common.API.School
     CROE.Common.User
     CROE.Common.Task
+    CROE.Common.School
   hs-source-dirs: src
   build-depends:
       base

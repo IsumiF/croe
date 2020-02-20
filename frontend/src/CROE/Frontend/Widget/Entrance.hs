@@ -199,7 +199,7 @@ registerWidget UserClient{..} =
                         text "登录"
                       pure loginEvt'
 
-            let registerForm = (\email -> RegisterForm (User email "新用户" RoleUser)) <$> emailDyn <*> passwordDyn <*> codeDyn
+            let registerForm = RegisterForm <$> emailDyn <*> passwordDyn <*> codeDyn
             registerResult <- _register (fmap Right registerForm) loginEvt
             let registerErrMsg = messageOnReqError "注册失败" registerResult
                 basicAuthData = (\email password -> BasicAuthData (T.encodeUtf8 email) (T.encodeUtf8 password)) <$> emailDyn <*> passwordDyn

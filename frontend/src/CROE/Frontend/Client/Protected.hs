@@ -9,6 +9,8 @@ module CROE.Frontend.Client.Protected
   , taskClient_publish
   , taskClient_get
   , taskClient_search
+  , SchoolClient(..)
+  , schoolClient_get
   ) where
 
 import           Control.Lens
@@ -18,6 +20,7 @@ import           Reflex.Dom
 import           Servant.API
 import           Servant.Reflex
 
+import           CROE.Common.API.School
 import           CROE.Common.API.Task
 
 newtype ProtectedClient t m = ProtectedClient
@@ -43,5 +46,11 @@ data TaskClient t m = TaskClient
                        -> m (Event t (ReqResult () TaskSearchResult))
   }
 
+newtype SchoolClient t m = SchoolClient
+  { _schoolClient_get :: Event t ()
+                      -> m (Event t (ReqResult () [School]))
+  }
+
 makeLenses ''ProtectedClient
 makeLenses ''TaskClient
+makeLenses ''SchoolClient

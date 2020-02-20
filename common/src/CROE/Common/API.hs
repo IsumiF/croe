@@ -8,11 +8,15 @@ module CROE.Common.API
 
 import           Servant.API
 
-import qualified CROE.Common.API.Task as Task
-import qualified CROE.Common.API.User as User
-import           CROE.Common.User     (User)
+import qualified CROE.Common.API.School as School
+import qualified CROE.Common.API.Task   as Task
+import qualified CROE.Common.API.User   as User
+import           CROE.Common.User       (User)
 
 type API = "api" :>
   ( User.API
-  :<|> BasicAuth "croe" User :> Task.API
+  :<|> BasicAuth "croe" User :>
+    ( Task.API
+    :<|> School.API
+    )
   )
