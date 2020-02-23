@@ -21,7 +21,7 @@ spec =
         shouldNoExcept $ do
           let startTime = UTCTime (fromGregorian 2020 1 19) 0
               endTime = UTCTime (fromGregorian 2020 1 20) 0
-              newTaskRequest = NewTaskRequest 500 "任务名" 1 (startTime, endTime) "摘要" "一些描述"
+              newTaskRequest = NewTaskRequest "任务名" 500 1 (startTime, endTime) "摘要" "一些描述"
           taskId <- liftEitherMShow $ runClientM' server $
             newTask newTaskRequest
           createdTask <- liftEitherMShow $ runClientM' server $

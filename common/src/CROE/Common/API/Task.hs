@@ -53,8 +53,8 @@ type APISearch = ReqBody '[JSON] TaskQueryCondition
   :> Get '[JSON] TaskSearchResult
 
 data NewTaskRequest = NewTaskRequest
-  { _newTaskRequest_reward      :: Word64
-  , _newTaskRequest_title       :: Text
+  { _newTaskRequest_title       :: Text
+  , _newTaskRequest_reward      :: Word64
   , _newTaskRequest_campusId    :: Int64
   , _newTaskRequest_duration    :: (UTCTime, UTCTime)
   , _newTaskRequest_abstract    :: Text

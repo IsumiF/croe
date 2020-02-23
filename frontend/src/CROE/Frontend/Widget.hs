@@ -16,24 +16,33 @@ import           URI.ByteString
 
 import           CROE.Frontend.Client
 import           CROE.Frontend.Env
+import           CROE.Frontend.User
 import           CROE.Frontend.Widget.Entrance   (entranceWidget)
+import           CROE.Frontend.Widget.TaskList   (taskListWidget)
 
-primaryWidget :: (MonadWidget t m)
+primaryWidget :: MonadWidget t m
               => Env t m
               -> m ()
 primaryWidget env = mdo
     routeDyn <- route updateRoute
     let routeIsEntrance = fmap ((entranceRoute `T.isPrefixOf`) . uriPathT) routeDyn
-        isEntrance = (&&) <$> routeIsEntrance <*> fmap not hasUser
+        isEntrance = (||) <$> routeIsEntrance <*> fmap not hasUser
     (userPwd, entranceUpdateRoute) <- showWidget isEntrance $
       entranceWidget (env ^. env_client . client_user) (fmap (stripPrefix' entranceRoute . uriPathT) routeDyn)
-    let updateRoute = fmap (entranceRoute <>) entranceUpdateRoute
+    let updateRoute = leftmost
+          [ fmap (entranceRoute <>) entranceUpdateRoute
+          , fmap (const taskListRoute) (ffilter id $ updated hasUser)
+          ]
         hasUser = fmap isJust userPwd
-    showWidget (fmap not isEntrance) $ text "已登入"
+        authDataDyn = (fmap . fmap) toBasicAuthData userPwd
+        protectedClient = (env ^. env_client . client_protected) authDataDyn
+
+    showWidget (fmap not isEntrance) (taskListWidget protectedClient)
 
     blank
   where
     entranceRoute = "/r/entrance"
+    taskListRoute = "/r/task_list"
 
 uriPathT :: URIRef Absolute -> Text
 uriPathT = T.decodeUtf8 . uriPath

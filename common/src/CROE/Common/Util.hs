@@ -3,6 +3,8 @@ module CROE.Common.Util
   , utf8LBS
   , reverseMap
   , showt
+  , readt
+  , readtMaybe
   , safeHead
   , liftBool
   ) where
@@ -16,6 +18,7 @@ import qualified Data.Map.Strict           as Map
 import           Data.Text                 (Text)
 import qualified Data.Text                 as T
 import qualified Data.Text.Encoding        as T
+import           Text.Read                 (readMaybe)
 
 aesonOptions :: Options
 aesonOptions = defaultOptions
@@ -30,6 +33,12 @@ reverseMap = Map.fromList . fmap (\(a, b) -> (b, a)) . Map.toList
 
 showt :: Show a => a -> Text
 showt = T.pack . show
+
+readt :: Read a => Text -> a
+readt = read . T.unpack
+
+readtMaybe :: Read a => Text -> Maybe a
+readtMaybe = readMaybe . T.unpack
 
 safeHead :: [a] -> Maybe a
 safeHead (x:_) = Just x

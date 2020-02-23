@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.8.0/css/bulma.min.css">
+</head>
+
+<body>
+  <section class="section">
+    <!-- 标题、摘要、时间地点、描述 -->
+    <div class="container">
+      <div class="field is-horizontal">
+        <div class="field-label is-normal">
+          <label class="label">标题</label>
+        </div>
+        <div class="field-body">
+          <div class="field">
+            <p class="control">
+              <input class="input" type="text" value="">
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="field is-horizontal">
+        <div class="field-label is-normal">
+          <label class="label">摘要</label>
+        </div>
+        <div class="field-body">
+          <div class="field">
+            <p class="control">
+              <textarea class="textarea" rows="3"></textarea>
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="field is-horizontal">
+        <div class="field-label is-normal">
+          <label class="label">赏金</label>
+        </div>
+        <div class="field-body">
+          <div class="field">
+            <p class="control">
+              <input class="input" type="number" value="100" step="1">
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="field is-horizontal">
+        <div class="field-label is-normal">
+          <label class="label">时间区间</label>
+        </div>
+        <div class="field-body">
+          <div class="field is-grouped">
+            <p class="control">
+              <input class="input" type="datetime-local" value="2020-02-23T10:04">
+            </p>
+            <p class="control">
+              <input class="input" type="datetime-local" value="">
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="field is-horizontal">
+        <div class="field-label is-normal">
+          <label class="label">学校、校区</label>
+        </div>
+        <div class="field-body">
+          <div class="field is-grouped">
+            <p class="control">
+              <div class="select">
+                <select>
+                  <option>中山大学</option>
+                  <option>华南理工大学</option>
+                </select>
+              </div>
+            </p>
+            <p class="control">
+              <div class="select">
+                <select>
+                  <option>东校区</option>
+                  <option>南校区</option>
+                </select>
+              </div>
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="field is-horizontal">
+        <div class="field-label is-normal">
+          <label class="label">详细描述</label>
+        </div>
+        <div class="field-body">
+          <div class="field">
+            <p class="control">
+              <textarea class="textarea" rows="15"></textarea>
+            </p>
+          </div>
+        </div>
+      </div>
+      <nav class="level">
+        <div class="level-left"></div>
+        <div class="level-right">
+          <div class="level-item">
+            <button class="button is-light">返回</button>
+          </div>
+          <div class="level-item">
+            <button class="button is-info">提交</button>
+          </div>
+        </div>
+      </nav>
+    </div>
+  </section>
+
+  <script defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bulma-extensions@6.2.7/dist/js/bulma-extensions.min.js"
+    integrity="sha256-q4zsxO0fpPm6VhtL/9QkCFE5ZkNa0yeUxhmt1VO1ev0=" crossorigin="anonymous"></script>
+</body>
+
+</html>

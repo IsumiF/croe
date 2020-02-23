@@ -3,6 +3,7 @@
 module CROE.Frontend.Client.Protected
   ( ProtectedClient(..)
   , protectedClient_task
+  , protectedClient_school
   , TaskClient(..)
   , taskClient_new
   , taskClient_update
@@ -23,8 +24,9 @@ import           Servant.Reflex
 import           CROE.Common.API.School
 import           CROE.Common.API.Task
 
-newtype ProtectedClient t m = ProtectedClient
-  { _protectedClient_task :: TaskClient t m
+data ProtectedClient t m = ProtectedClient
+  { _protectedClient_task   :: TaskClient t m
+  , _protectedClient_school :: SchoolClient t m
   }
 
 data TaskClient t m = TaskClient

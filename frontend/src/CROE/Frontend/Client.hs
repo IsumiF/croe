@@ -1,18 +1,20 @@
 module CROE.Frontend.Client
   ( Client
   , client_user
+  , client_protected
   , reqResultToEither
   , messageOnReqError
-  , module CROE.Frontend.Client.User
+  , module Exports
   ) where
 
-import           Data.Maybe                (fromMaybe)
-import           Data.Text                 (Text)
-import           Reflex.Dom                hiding (Client)
-import           Servant.Reflex            hiding (Client)
+import           Data.Maybe                     (fromMaybe)
+import           Data.Text                      (Text)
+import           Reflex.Dom                     hiding (Client)
+import           Servant.Reflex                 hiding (Client)
 
 import           CROE.Frontend.Client.Init
-import           CROE.Frontend.Client.User
+import           CROE.Frontend.Client.Protected as Exports
+import           CROE.Frontend.Client.User      as Exports
 
 reqResultToEither :: ReqResult tag a -> Either Text a
 reqResultToEither (ResponseSuccess _ a _) = Right a

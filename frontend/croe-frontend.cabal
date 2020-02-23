@@ -23,6 +23,8 @@ library
       CROE.Frontend.Widget
       CROE.Frontend.Widget.Entrance
       CROE.Frontend.Widget.Notification
+      CROE.Frontend.Widget.TaskList
+      CROE.Frontend.Widget.Navbar
   hs-source-dirs:
       src
   default-extensions: OverloadedStrings OverloadedLists
@@ -46,6 +48,7 @@ library
     , reflex-dom-contrib
     , servant
     , servant-reflex
+    , split
     , template-haskell
     , text
     , time
