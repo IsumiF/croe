@@ -49,8 +49,8 @@ type APIPublish = Capture "id" Int64
 type APIGet = Capture "id" Int64
   :> Get '[JSON] TaskDetail
 
-type APISearch = ReqBody '[JSON] TaskQueryCondition
-  :> Get '[JSON] TaskSearchResult
+type APISearch = "search" :> ReqBody '[JSON] TaskQueryCondition
+  :> Post '[JSON] TaskSearchResult
 
 data NewTaskRequest = NewTaskRequest
   { _newTaskRequest_title       :: Text

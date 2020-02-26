@@ -9,11 +9,13 @@ module CROE.Frontend.Widget.TaskList
 import           Control.Lens
 import           Control.Monad                     (join)
 import           Control.Monad.IO.Class
+import           Data.Bifunctor                    (first)
 import           Data.Foldable                     (forM_)
 import           Data.Functor                      (void)
 import           Data.Int
 import           Data.List.Split                   (chunksOf)
 import           Data.Maybe
+import           Data.Text                         (Text)
 import qualified Data.Text                         as T
 import           Data.Time
 import           Data.Traversable                  (forM)
@@ -23,13 +25,25 @@ import           Reflex.Dom.Bulma.Component.Show   (showWidget)
 import           Reflex.Dom.Bulma.Util             (parseFormDateTime,
                                                     renderFormDateTime)
 import           Servant.API
+import           Text.Printf                       (printf)
 
 import           CROE.Common.API.Task
 import           CROE.Common.School
-import           CROE.Common.Util                  (readtMaybe, safeHead, showt)
+import           CROE.Common.Util                  (readt, readtMaybe, safeHead,
+                                                    showt)
 import           CROE.Frontend.Client
 import           CROE.Frontend.Widget.Navbar       (navbarWidget)
+import           CROE.Frontend.Widget.Pagination
 import           Reflex.Dom.Bulma.Component.Button
+
+maxScore :: Double
+maxScore = 5
+
+pageSize :: Integral a => a
+pageSize = 8
+
+rowWidth :: Integral a => a
+rowWidth = 4
 
 taskListWidget :: forall t m. MonadWidget t m
                => ProtectedClient t m
@@ -39,33 +53,45 @@ taskListWidget protectedClient = mdo
     (newTaskEvt, updateTaskEvt) <- showWidget isViewListDyn $ elClass "section" "section" $
       divClass "container" $
         divClass "tile is-ancestor" $
-          divClass "tile is-vertical" $ do
+          divClass "tile is-vertical" $ mdo
             (newTaskEvt', _) <- divClass "tile is-parent" $
               divClass "tile is-child" $
                 buttonAttr ("class" =: "button is-link") $ text "发布新任务"
-            divClass "tile is-parent" $
+            queryTextEvt <- divClass "tile is-parent" $
               divClass "tile is-child is-12 box" $
-                divClass "field is-grouped" $
-                  divClass "control is-expanded" $
-                    void $ inputElement $ def & initialAttributes .~ ("class" =: "input" <> "type" =: "text" <> "placeholder" =: "智能搜索")
-            -- widgetHold :: m a ->   Event (m a) -> m (Dynamic a)
-            postBuild <- getPostBuild
-            updateTaskEvtDyn <- widgetHold (pure never) $ ffor postBuild $ \_ -> do
-              now <- liftIO getCurrentTime
-              let tasks :: [(Int64, Task)] =
-                    [ (1, Task "任务1标题" "任务1摘要摘要摘要" 100 1 Nothing (now, addUTCTime nominalDay now) "中山大学 东校区" 1 Nothing TaskStatusPublished)
-                    , (2, Task "任务2标题" "任务2摘要摘要摘要" 200 1 Nothing (now, addUTCTime nominalDay now) "华南理工大学 主校区" 1 Nothing TaskStatusReviewing)
-                    , (3, Task "任务3标题" "任务3摘要摘要摘要" 200 1 Nothing (now, addUTCTime nominalDay now) "华南理工大学 主校区" 1 Nothing TaskStatusReviewing)
-                    , (4, Task "任务4标题" "任务4摘要摘要摘要" 200 1 Nothing (now, addUTCTime nominalDay now) "华南理工大学 主校区" 1 Nothing TaskStatusReviewing)
-                    , (5, Task "任务5标题" "任务5摘要摘要摘要" 200 1 Nothing (now, addUTCTime nominalDay now) "华南理工大学 主校区" 1 Nothing TaskStatusReviewing)
-                    ]
-              cardClickEvts <- forM (chunksOf 4 tasks) $ \row ->
+                divClass "field is-grouped" $ do
+                  queryTextDyn' <- divClass "control is-expanded" $ do
+                    ti <- inputElement $ def & initialAttributes .~ ("class" =: "input" <> "type" =: "text" <> "placeholder" =: "智能搜索")
+                    pure (value ti)
+                  (e, _) <- divClass "control" $
+                    buttonAttr ("class" =: "button is-primary") $ text "搜索"
+                  pure (tagPromptlyDyn queryTextDyn' e)
+            queryTextDyn <- holdDyn "" queryTextEvt
+            let queryConditionDyn = makeTaskQueryCondition
+                  <$> queryTextDyn
+                  <*> constDyn Nothing
+                  <*> constDyn Nothing
+                  <*> offsetDyn
+                triggerSearchEvt = void (updated queryConditionDyn)
+            searchReqResult <- searchTask (fmap Right queryConditionDyn) triggerSearchEvt
+            let searchResult = filterRight (fmap reqResultToEither searchReqResult)
+                totalEvt = fmap (^. taskSearchResult_total) searchResult
+                tasksEvt :: Event t [(Int64, Task)] =
+                  fmap (\r -> fmap (first readt) (r ^. taskSearchResult_tasks)) searchResult
+            updateTaskEvtDyn <- widgetHold (pure never) $ ffor tasksEvt $ \tasks -> do
+              cardClickEvts <- forM (chunksOf rowWidth tasks) $ \row ->
                 divClass "tile" $
-                  forM row $ \entity@(taskId, _) -> do
-                    e <- taskCard entity
+                  forM row $ \(taskId, task) -> do
+                    e <- taskCard task
                     pure (fmap (const taskId) e)
               pure $ leftmost (fmap leftmost cardClickEvts)
-            let updateTaskEvt' = switchDyn updateTaskEvtDyn
+            totalDyn <- holdDyn 1 totalEvt
+            pg <- divClass "tile is-parent tasklist-pagination-tile" $ divClass "tile is-child has-text-right" $
+              pagination $ (def :: PaginationConfig t)
+                & paginationConfig_total .~ fmap (`divUpper` pageSize) totalDyn
+            let currentPageDyn = pg ^. pagination_current
+                offsetDyn = fmap (\x -> (x - 1) * pageSize) currentPageDyn
+                updateTaskEvt' = switchDyn updateTaskEvtDyn
             pure (newTaskEvt', updateTaskEvt')
 
     backEvtDyn <- widgetHold (pure never) $ ffor taskOpEvt $ \taskOp ->
@@ -84,6 +110,27 @@ taskListWidget protectedClient = mdo
   where
     schoolClient = protectedClient ^. protectedClient_school
     taskClient = protectedClient ^. protectedClient_task
+    searchTask = taskClient ^. taskClient_search
+
+divUpper :: Integral a => a -> a -> a
+divUpper x y =
+    if x `mod` y == 0
+    then x `div` y
+    else x `div` y + 1
+
+makeTaskQueryCondition :: Text -- ^query string
+                       -> Maybe Int64 -- ^creator id
+                       -> Maybe Int64 -- ^taker id
+                       -> Integer -- ^offset
+                       -> TaskQueryCondition
+makeTaskQueryCondition queryText creatorId takerId offset =
+    def & taskQueryCondition_query .~ queryText
+        & taskQueryCondition_creatorId .~ creatorId
+        & taskQueryCondition_takerId .~ takerId
+        & taskQueryCondition_limit .~ defaultLimit
+        & taskQueryCondition_offset .~ offset
+  where
+    defaultLimit = 8
 
 data TaskOperation = NewTask
                    | UpdateTask Int64
@@ -91,32 +138,46 @@ data TaskOperation = NewTask
                      deriving (Show, Eq)
 
 taskCard :: MonadWidget t m
-         => (Int64, Task) -- ^task with id
+         => Task -- ^task with id
          -> m (Event t ()) -- ^returns click event
 taskCard task = do
-    (raw, _) <- elClass' "div" "tile is-parent" $
+    (raw, _) <- elClass' "div" "tile is-parent is-3" $
       divClass "tile is-child box" $ do
-        elClass "h4" "title is-4" $ text "取快递"
-        elClass "p" "is-size-6" $ text "详细描述详细描述详细描述详细描述详细描述详细描述详细描述详细描述详细描述"
+        elClass "h4" "title is-4" $ text (task ^. task_title)
+        elClass "p" "is-size-6" $ text (task ^. task_abstract)
         elAttr "div" ("class" =: "taskcard-topmost-field") $
           elClass "span" "tag is-medium is-link" $
-            text "发布人：fengzelin.isumi"
+            text "发布人：fengzelin.isumi" -- TODO
         elAttr "nav" ("class" =: "level taskcard-other-field") $ do
           divClass "level-left" $
             divClass "level-item" $
               elClass "span" "tag is-medium is-success" $
-                text "5¥"
+                text $ "奖金：" <> showt (task ^. task_reward)
           divClass "level-rigit" $
             divClass "level-item" $
               elClass "span" "tag is-medium is-info" $
-                text "评分：8.5"
+                text $ "评分：" <> showCreatorScore (task ^. task_creatorScore)
+        divClass "taskcard-other-field" $
+          elClass "span" "tag is-medium is-light" $ do
+            tz <- liftIO getCurrentTimeZone
+            text $ formatDuration (durationToLocal tz (task ^. task_duration))
         divClass "taskcard-other-field" $
           elClass "span" "tag is-medium is-light" $
-            text "01/20 11:30 ~ 01/20 12:30"
-        divClass "taskcard-other-field" $
-          elClass "span" "tag is-medium is-light" $
-            text "中山大学 - 东校区"
+            text $ task ^. task_location
     pure $ domEvent Click raw
+  where
+    formatLocalTime :: LocalTime -> Text
+    formatLocalTime = T.pack . formatTime defaultTimeLocale "%m/%d %H:%M"
+
+    formatDuration :: (LocalTime, LocalTime) -> Text
+    formatDuration (begin, end) = formatLocalTime begin <> " ~ " <> formatLocalTime end
+
+    durationToLocal :: TimeZone -> (UTCTime, UTCTime) -> (LocalTime, LocalTime)
+    durationToLocal tz (t1, t2) = (utcToLocalTime tz t1, utcToLocalTime tz t2)
+
+showCreatorScore :: Maybe Double -> Text
+showCreatorScore Nothing      = "无"
+showCreatorScore (Just score) = T.pack $ printf "%.1f" (score / maxScore)
 
 handleTaskOperation :: MonadWidget t m
                     => TaskOperation
@@ -219,7 +280,7 @@ putTaskWidget initialTask schoolClient taskClient =
                     pure $ _selectElement_value s
                   pure $ join d
               let campusIdDyn' :: Dynamic t Int64 = fromMaybe 0 . readtMaybe <$> campusSelectedValue
-              pure (traceDyn "campusId" campusIdDyn')
+              pure campusIdDyn'
         descriptionDyn <- divClass "field is-horizontal" $ do
           divClass "field-label is-normal" $
             elClass "label" "label" $ text "详细描述"
