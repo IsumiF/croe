@@ -31,6 +31,7 @@ apiHandler =
         :<|> ExceptT . Task.publishTask user
         :<|> ExceptT . Task.getTask user
         :<|> ExceptT . Task.searchTask user
+        :<|> ExceptT (Task.reindex user)
         ) :<|>
           ExceptT (School.getSchoolList user)
     )

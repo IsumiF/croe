@@ -22,6 +22,7 @@ module CROE.Common.Task
   , task_abstract
   , task_reward
   , task_creatorId
+  , task_creatorName
   , task_creatorScore
   , task_duration
   , task_location
@@ -111,6 +112,7 @@ data Task = Task
   , _task_abstract     :: Text
   , _task_reward       :: Word64
   , _task_creatorId    :: Int64
+  , _task_creatorName  :: Text
   , _task_creatorScore :: Maybe Double
   , _task_duration     :: (UTCTime, UTCTime)
   , _task_location     :: Text -- 学校名+校区名

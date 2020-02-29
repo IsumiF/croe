@@ -10,6 +10,7 @@ module CROE.Frontend.Client.Protected
   , taskClient_publish
   , taskClient_get
   , taskClient_search
+  , taskClient_reindex
   , SchoolClient(..)
   , schoolClient_get
   ) where
@@ -46,6 +47,8 @@ data TaskClient t m = TaskClient
   , _taskClient_search :: Dynamic t (Either Text TaskQueryCondition)
                        -> Event t ()
                        -> m (Event t (ReqResult () TaskSearchResult))
+  , _taskClient_reindex :: Event t ()
+                        -> m (Event t (ReqResult () NoContent))
   }
 
 newtype SchoolClient t m = SchoolClient

@@ -33,6 +33,7 @@ type API = "task" :>
   :<|> APIPublish
   :<|> APIGet
   :<|> APISearch
+  :<|> APIReindex
   )
 
 -- |returns task id
@@ -51,6 +52,8 @@ type APIGet = Capture "id" Int64
 
 type APISearch = "search" :> ReqBody '[JSON] TaskQueryCondition
   :> Post '[JSON] TaskSearchResult
+
+type APIReindex = "reindex" :> Post '[JSON] NoContent
 
 data NewTaskRequest = NewTaskRequest
   { _newTaskRequest_title       :: Text

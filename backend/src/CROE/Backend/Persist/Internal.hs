@@ -23,6 +23,7 @@ data ReadEntity record (m :: * -> *) a where
   GetBy :: Connection -> Unique record -> ReadEntity record m (Maybe (Entity record))
   SelectFirst :: Connection -> [Filter record] -> [SelectOpt record] -> ReadEntity record m (Maybe (Entity record))
   SelectList :: Connection -> [Filter record] -> [SelectOpt record] -> ReadEntity record m [Entity record]
+  SelectKeysList :: Connection -> [Filter record] -> [SelectOpt record] -> ReadEntity record m [Key record]
 
 makeSem ''ReadEntity
 

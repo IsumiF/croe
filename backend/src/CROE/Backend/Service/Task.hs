@@ -7,6 +7,7 @@ module CROE.Backend.Service.Task
   , publishTask
   , getTask
   , searchTask
+  , reindex
   ) where
 
 import           Control.Lens                             hiding (Review)
@@ -14,7 +15,9 @@ import           Control.Monad.Trans.Class
 import           Control.Monad.Trans.Except
 import           Control.Monad.Trans.Maybe
 import           Data.Coerce
+import           Data.Foldable                            (forM_)
 import           Data.Int
+import           Data.Maybe
 import           Data.String.Interpolate
 import qualified Data.Text.Encoding                       as T
 import           Database.Persist                         ((=.), (==.))
@@ -36,6 +39,7 @@ newTask :: Members '[ ObjectStorage
                     , Persist.ConnectionPool
                     , Persist.Transactional
                     , Persist.ReadEntity User
+                    , Persist.ReadEntity Task
                     , Persist.WriteEntity Task
                     , Persist.ReadEntity SchoolCampus
                     , Persist.ReadEntity School
@@ -68,8 +72,7 @@ newTask authUser request = do
                 descriptionKey = "task/" <> showt taskId' <> "/description"
             liftBool $ putBytes descriptionKey (T.encodeUtf8 (request ^. Common.newTaskRequest_description))
 
-            esTask <- MaybeT $ taskToCommon conn task
-            liftBool $ ES.putTask (showt taskId') esTask
+            liftBool $ syncTaskToES conn taskId
 
             lift $ Persist.update conn taskId [TaskDescriptionKey =. descriptionKey]
             pure (Right taskId')
@@ -120,12 +123,8 @@ updateTask authUser taskId request =
                 , TaskAbstract =. abstract
                 , TaskDescriptionKey =. descriptionKey
                 ]
-              newTask' <- maybeToExceptT err500 . MaybeT $ Persist.get conn (toSqlKey taskId)
-              esTask <- maybeToExceptT err500 . MaybeT $ taskToCommon conn newTask'
-              esOk <- lift $ ES.putTask (showt taskId) esTask
-              if not esOk
-              then throwE err500
-              else pure NoContent
+              maybeToExceptT err500 $ liftBool $ syncTaskToES conn (toSqlKey taskId)
+              pure NoContent
       case r of
         Left _  -> Persist.transactionUndo conn
         Right _ -> pure ()
@@ -200,6 +199,28 @@ searchTask _ queryCondition = do
     searchResult <- ES.searchTask queryCondition
     pure (Right searchResult)
 
+reindex :: Members '[ Persist.ConnectionPool
+                    , Persist.ReadEntity Task
+                    , Persist.ReadEntity School
+                    , Persist.ReadEntity SchoolCampus
+                    , Persist.ReadEntity Review
+                    , Persist.ReadEntity User
+                    , ES.Elasticsearch
+                    ] r
+        => Common.User
+        -> Sem r (Either ServerError NoContent)
+reindex authUser =
+    if role /= Common.RoleAdmin
+    then pure (Left err403)
+    else
+      Persist.withConn $ \conn -> do
+        taskIds :: [TaskId] <- Persist.selectKeysList conn [] []
+        forM_ taskIds $ \taskId ->
+          syncTaskToES conn taskId
+        pure (Right NoContent)
+  where
+    role = authUser ^. Common.user_role
+
 ownsTask :: Member (Persist.ReadEntity User) r
          => Persist.Connection
          -> Common.User
@@ -224,28 +245,35 @@ averageRate conn key = do
     then pure Nothing
     else pure . Just $ sum ratings / fromIntegral (length ratings)
 
-taskToCommon :: Members '[ Persist.ReadEntity SchoolCampus
+syncTaskToES :: Members '[ Persist.ReadEntity Task
                          , Persist.ReadEntity School
+                         , Persist.ReadEntity SchoolCampus
                          , Persist.ReadEntity Review
+                         , Persist.ReadEntity User
+                         , ES.Elasticsearch
                          ] r
              => Persist.Connection
-             -> Task
-             -> Sem r (Maybe Common.Task)
-taskToCommon conn Task{..} = runMaybeT $ do
+             -> TaskId
+             -> Sem r Bool
+syncTaskToES conn taskId = fmap isJust $ runMaybeT $ do
+    Task{..} <- MaybeT $ Persist.get conn taskId
     campus <- MaybeT $ Persist.get conn taskLocation
     let schoolId = schoolCampusSchoolId campus
     school <- MaybeT $ Persist.get conn schoolId
     let locationStr = schoolName school <> " " <> schoolCampusName campus
     creatorScore <- lift $ averageRate conn taskCreator
-    pure $ Common.Task
-      { Common._task_title = taskTitle
-      , Common._task_abstract = taskAbstract
-      , Common._task_reward = taskReward
-      , Common._task_creatorId = fromSqlKey taskCreator
-      , Common._task_creatorScore = creatorScore
-      , Common._task_duration = taskDuration
-      , Common._task_location = locationStr
-      , Common._task_campusId = fromSqlKey taskLocation
-      , Common._task_takerId = fromSqlKey <$> taskTaker
-      , Common._task_status = coerce taskCurrentStatus
-      }
+    creator <- MaybeT $ Persist.get conn taskCreator
+    let esTask = Common.Task
+          { Common._task_title = taskTitle
+          , Common._task_abstract = taskAbstract
+          , Common._task_reward = taskReward
+          , Common._task_creatorId = fromSqlKey taskCreator
+          , Common._task_creatorName = userName creator
+          , Common._task_creatorScore = creatorScore
+          , Common._task_duration = taskDuration
+          , Common._task_location = locationStr
+          , Common._task_campusId = fromSqlKey taskLocation
+          , Common._task_takerId = fromSqlKey <$> taskTaker
+          , Common._task_status = coerce taskCurrentStatus
+          }
+    liftBool $ ES.putTask (showt (fromSqlKey taskId)) esTask

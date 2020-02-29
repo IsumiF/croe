@@ -52,6 +52,7 @@ newClient (Config baseUrl) =
                 :<|> _taskClient_publish
                 :<|> _taskClient_get
                 :<|> _taskClient_search
+                :<|> _taskClient_reindex
                 ) :<|>
                   _schoolClient_get
                   = protected user

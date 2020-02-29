@@ -15,6 +15,7 @@ module CROE.Backend.Persist.Class
   , getBy
   , selectFirst
   , selectList
+  , selectKeysList
   , WriteEntity
   , insert
   , insert_

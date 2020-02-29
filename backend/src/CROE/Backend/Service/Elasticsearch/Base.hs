@@ -177,6 +177,7 @@ taskToDoc task = object
     , "abstract" Aeson..= (task ^. task_abstract)
     , "reward" Aeson..= (task ^. task_reward)
     , "creatorId" Aeson..= (task ^. task_creatorId)
+    , "creatorName" Aeson..= (task ^. task_creatorName)
     , "creatorScore" Aeson..= (task ^. task_creatorScore)
     , ("duration", object
         [ "gte" Aeson..= fst (task ^. task_duration)
@@ -203,6 +204,7 @@ instance FromJSON TaskDoc where
     _task_abstract <- o .: "abstract"
     _task_reward <- o .: "reward"
     _task_creatorId <- o .: "creatorId"
+    _task_creatorName <- o .: "creatorName"
     _task_creatorScore <- o .: "creatorScore"
     Range lte gte <- o .: "duration"
     let _task_duration = (gte, lte)

@@ -127,6 +127,7 @@ runReadEntity = interpret $ \case
     GetBy conn key -> runReaderT (Persist.getBy key) conn
     SelectFirst conn a b -> runReaderT (Persist.selectFirst a b) conn
     SelectList conn a b -> runReaderT (Persist.selectList a b) conn
+    SelectKeysList conn a b -> runReaderT (Persist.selectKeysList a b) conn
 
 runWriteEntity :: ( Member (Embed IO) r
                    , Persist.PersistEntity record

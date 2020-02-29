@@ -113,6 +113,7 @@ servantClient =
               :<|> _taskClient_publishTask
               :<|> _taskClient_getTask
               :<|> _taskClient_search
+              :<|> _taskClient_reindex
               ) :<|> _schoolClient_get
                 = protected user
             _protectedClient_task = TaskClient{..}
@@ -144,6 +145,7 @@ data TaskClient = TaskClient
   , _taskClient_publishTask :: Int64 -> ClientM NoContent
   , _taskClient_getTask     :: Int64 -> ClientM TaskDetail
   , _taskClient_search      :: TaskQueryCondition -> ClientM TaskSearchResult
+  , _taskClient_reindex     :: ClientM NoContent
   }
 
 data SchoolClient = SchoolClient
