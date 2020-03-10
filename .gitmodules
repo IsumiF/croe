@@ -4,3 +4,6 @@
 [submodule "reflex-dom-bulma"]
 	path = reflex-dom-bulma
 	url = git@github.com:IsumiF/reflex-dom-bulma.git
+[submodule "frontend/sass/bulma-checkradio"]
+	path = frontend/sass/bulma-checkradio
+	url = git@github.com:Wikiki/bulma-checkradio.git

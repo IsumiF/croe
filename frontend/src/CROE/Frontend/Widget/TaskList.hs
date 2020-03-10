@@ -56,22 +56,47 @@ taskListWidget user protectedClient = mdo
             (newTaskEvt', _) <- divClass "tile is-parent" $
               divClass "tile is-child" $
                 buttonAttr ("class" =: "button is-link") $ text "发布新任务"
-            queryTextEvt <- divClass "tile is-parent" $
+            (queryTextEvt, myPublishedDyn, myAcceptedDyn) <- divClass "tile is-parent" $
               divClass "tile is-child is-12 box" $
-                divClass "field is-grouped" $ do
+                divClass "field is-grouped" $ mdo
                   queryTextDyn' <- divClass "control is-expanded" $ do
-                    ti <- inputElement $ def & initialAttributes .~ ("class" =: "input" <> "type" =: "text" <> "placeholder" =: "智能搜索")
+                    ti <- inputElement $ def
+                      & initialAttributes .~ ("class" =: "input" <> "type" =: "text" <> "placeholder" =: "智能搜索")
                     pure (value ti)
                   (e, _) <- divClass "control" $
                     buttonAttr ("class" =: "button is-primary") $ text "搜索"
-                  pure (tagPromptlyDyn queryTextDyn' e)
+                  checkboxMyPublished <- inputElement $ def
+                    & initialAttributes .~ ( "class" =: "is-checkradio"
+                                           <> "id" =: "checkradio-my-published"
+                                           <> "type" =: "checkbox"
+                                           )
+                    & inputElementConfig_setChecked .~ fmapMaybe (\p -> if p then Just False else Nothing) myAcceptedCheckedChange
+                  let myPublishedCheckedChange = _inputElement_checkedChange checkboxMyPublished
+                  elAttr "label" ("for" =: "checkradio-my-published") $
+                    text "我发布的"
+                  checkboxMyAccepted <- inputElement $ def
+                    & initialAttributes .~ ( "class" =: "is-checkradio"
+                                           <> "id" =: "checkradio-my-accepted"
+                                           <> "type" =: "checkbox"
+                                           )
+                    & inputElementConfig_setChecked .~ fmapMaybe (\p -> if p then Just False else Nothing) myPublishedCheckedChange
+                  let myAcceptedCheckedChange = _inputElement_checkedChange checkboxMyAccepted
+                      myPublished = _inputElement_checked checkboxMyPublished
+                      myAccepted = _inputElement_checked checkboxMyAccepted
+                  elAttr "label" ("for" =: "checkradio-my-accepted") $
+                    text "我接受的"
+                  pure (tagPromptlyDyn queryTextDyn' e, myPublished, myAccepted)
             queryTextDyn <- holdDyn "" queryTextEvt
             let queryConditionDyn = makeTaskQueryCondition
                   <$> queryTextDyn
-                  <*> constDyn Nothing
-                  <*> constDyn Nothing
+                  <*> fmap (\p -> if p then Just userId else Nothing) myPublishedDyn
+                  <*> fmap (\p -> if p then Just userId else Nothing) myAcceptedDyn
                   <*> offsetDyn
-                triggerSearchEvt = leftmost [void (updated queryConditionDyn)]
+                triggerSearchEvt = leftmost
+                  [ void (updated queryConditionDyn)
+                  , void (updated myPublishedDyn)
+                  , void (updated myAcceptedDyn)
+                  ]
             searchReqResult <- searchTask (fmap Right queryConditionDyn) triggerSearchEvt
             let searchResult = filterRight (fmap reqResultToEither searchReqResult)
                 totalEvt = fmap (^. taskSearchResult_total) searchResult
@@ -109,6 +134,7 @@ taskListWidget user protectedClient = mdo
     let isViewListDyn = fmap isNothing taskOpDyn
     blank
   where
+    userId = user ^. user_id
     schoolClient = protectedClient ^. protectedClient_school
     taskClient = protectedClient ^. protectedClient_task
     searchTask = taskClient ^. taskClient_search
@@ -148,7 +174,7 @@ taskCard task = do
         elClass "p" "is-size-6" $ text (task ^. task_abstract)
         elAttr "div" ("class" =: "taskcard-topmost-field") $
           elClass "span" "tag is-medium is-link" $
-            text "发布人：fengzelin.isumi" -- TODO
+            text $ "发布人：" <> task ^. task_creatorName
         elAttr "nav" ("class" =: "level taskcard-other-field") $ do
           divClass "level-left" $
             divClass "level-item" $
