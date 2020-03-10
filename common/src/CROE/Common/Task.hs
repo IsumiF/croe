@@ -45,10 +45,19 @@ module CROE.Common.Task
   , _TaskStatusAccepted
   , _TaskStatusBeforeFinish
   , _TaskStatusFinished
+  , TaskAction(..)
+  , _TaskActionPublish
+  , _TaskActionAccept
+  , _TaskActionSubmit
+  , _TaskActionConfirm
+  , nextAction
+  , nextTaskAction
+  , taskEditable
   ) where
 
 import           Control.Lens
 import           Data.Aeson
+import           Data.Bifunctor
 import           Data.Default
 import           Data.Int
 import           Data.Map.Strict  (Map)
@@ -58,7 +67,8 @@ import qualified Data.Text        as T
 import           Data.Time
 import           Data.Word        (Word64)
 import           GHC.Generics     (Generic)
-import           Text.Read        (readMaybe)
+import           Servant.API
+import           Text.Read        (readEither, readMaybe)
 
 import           CROE.Common.Util (aesonOptions, reverseMap, showt)
 
@@ -152,7 +162,7 @@ data TaskStatus = TaskStatusReviewing -- ^草稿
                 | TaskStatusAccepted -- ^已接受
                 | TaskStatusBeforeFinish -- ^接受者认为已完成
                 | TaskStatusFinished -- ^发布者确认已完成
-                  deriving (Eq, Ord)
+                  deriving (Eq, Ord, Enum)
 
 statusToStr :: Map TaskStatus String
 statusToStr = Map.fromList
@@ -181,8 +191,60 @@ instance FromJSON TaskStatus where
       Just stat -> pure stat
       Nothing   -> fail "unexpected value"
 
+data TaskAction = TaskActionPublish
+                | TaskActionAccept
+                | TaskActionSubmit
+                | TaskActionConfirm
+                  deriving (Eq, Ord, Generic, Show, Read)
+
+instance ToJSON TaskAction where
+  toJSON = genericToJSON aesonOptions
+  toEncoding = genericToEncoding aesonOptions
+
+instance FromJSON TaskAction where
+  parseJSON = genericParseJSON aesonOptions
+
+instance FromHttpApiData TaskAction where
+  parseQueryParam = first T.pack . readEither . T.unpack
+
+instance ToHttpApiData TaskAction where
+  toQueryParam = showt
+
+nextAction :: TaskStatus -> TaskAction
+nextAction TaskStatusReviewing    = TaskActionPublish
+nextAction TaskStatusPublished    = TaskActionAccept
+nextAction TaskStatusAccepted     = TaskActionSubmit
+nextAction TaskStatusBeforeFinish = TaskActionConfirm
+
+taskEditable :: Eq userId
+             => userId -- ^current user id
+             -> userId -- ^creator id
+             -> TaskStatus
+             -> Bool
+taskEditable userId creatorId status =
+    userId == creatorId && status == TaskStatusReviewing
+
+nextTaskAction :: Eq userId
+               => TaskStatus -- ^current status
+               -> userId -- ^current user id
+               -> userId -- ^creator id
+               -> Maybe userId -- ^taker id
+               -> Maybe TaskAction
+nextTaskAction status userId creatorId takerId =
+  case status of
+    TaskStatusReviewing ->
+      if userId == creatorId then Just TaskActionPublish else Nothing
+    TaskStatusPublished ->
+      if userId /= creatorId then Just TaskActionAccept else Nothing
+    TaskStatusAccepted ->
+      if Just userId == takerId then Just TaskActionSubmit else Nothing
+    TaskStatusBeforeFinish ->
+      if userId == creatorId then Just TaskActionConfirm else Nothing
+    TaskStatusFinished -> Nothing
+
 makeLenses ''TaskQueryCondition
 makeLenses ''TaskSearchResult
 makeLenses ''Task
 makeLenses ''TaskDetail
 makePrisms ''TaskStatus
+makePrisms ''TaskAction

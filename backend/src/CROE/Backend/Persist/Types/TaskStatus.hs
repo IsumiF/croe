@@ -10,6 +10,6 @@ import           Database.Persist.TH
 import qualified CROE.Common.Task    as Common (TaskStatus (..))
 
 newtype TaskStatus = TaskStatus Common.TaskStatus
-  deriving newtype (Show, Read, Eq, Ord)
+  deriving newtype (Show, Read, Eq, Ord, Enum)
 
 derivePersistField "TaskStatus"

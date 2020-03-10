@@ -28,6 +28,7 @@ import           Servant.API
 
 import           CROE.Common.API.Task
 import           CROE.Common.School
+import           CROE.Common.User
 import           CROE.Common.Util                       (readt, readtMaybe,
                                                          safeHead, showt)
 import           CROE.Frontend.Client
@@ -43,9 +44,10 @@ rowWidth :: Integral a => a
 rowWidth = 4
 
 taskListWidget :: forall t m. MonadWidget t m
-               => ProtectedClient t m
+               => User
+               -> ProtectedClient t m
                -> m ()
-taskListWidget protectedClient = mdo
+taskListWidget user protectedClient = mdo
     navbarWidget
     (newTaskEvt, viewTaskEvt) <- showWidget isViewListDyn $ elClass "section" "section" $
       divClass "container" $
@@ -69,7 +71,7 @@ taskListWidget protectedClient = mdo
                   <*> constDyn Nothing
                   <*> constDyn Nothing
                   <*> offsetDyn
-                triggerSearchEvt = void (updated queryConditionDyn)
+                triggerSearchEvt = leftmost [void (updated queryConditionDyn)]
             searchReqResult <- searchTask (fmap Right queryConditionDyn) triggerSearchEvt
             let searchResult = filterRight (fmap reqResultToEither searchReqResult)
                 totalEvt = fmap (^. taskSearchResult_total) searchResult
@@ -94,7 +96,7 @@ taskListWidget protectedClient = mdo
     resultDyn <- widgetHold (pure (never, never)) $ ffor taskOpEvt $ \taskOp ->
       case taskOp of
         Nothing      -> pure (never, never)
-        Just taskOp' -> handleTaskOperation taskOp' schoolClient taskClient
+        Just taskOp' -> handleTaskOperation taskOp' user schoolClient taskClient
     let backEvt = switchDyn (fmap fst resultDyn)
         resultOpEvt = switchDyn (fmap snd resultDyn)
         taskOpEvt :: Event t (Maybe TaskOperation) =
@@ -176,17 +178,18 @@ durationToLocal tz (t1, t2) = (utcToLocalTime tz t1, utcToLocalTime tz t2)
 
 handleTaskOperation :: MonadWidget t m
                     => TaskOperation
+                    -> User
                     -> SchoolClient t m
                     -> TaskClient t m
-                    -> m (Event t (), Event t TaskOperation) -- ^event to go back
-handleTaskOperation NewTask schoolClient taskClient = do
+                    -> m (Event t (), Event t TaskOperation) -- ^event to go back, event to generate another operation
+handleTaskOperation NewTask _ schoolClient taskClient = do
     e <- putTaskWidget Nothing schoolClient taskClient
     pure (e, never)
-handleTaskOperation (UpdateTask taskId) schoolClient taskClient = do
+handleTaskOperation (UpdateTask taskId) _ schoolClient taskClient = do
     e <- putTaskWidget (Just taskId) schoolClient taskClient
     pure (e, never)
-handleTaskOperation (ViewTask taskEntity) _ taskClient = do
-    (back, updateTask) <- viewTaskWidget taskEntity taskClient
+handleTaskOperation (ViewTask taskEntity) user _ taskClient = do
+    (back, updateTask) <- viewTaskWidget user taskEntity taskClient
     pure (back, fmap (const (UpdateTask taskEntity)) updateTask)
 
 putTaskWidget :: forall t m. MonadWidget t m

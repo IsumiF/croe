@@ -4,7 +4,7 @@
 module CROE.Backend.Service.Task
   ( newTask
   , updateTask
-  , publishTask
+  , changeStatus
   , getTask
   , searchTask
   , reindex
@@ -98,7 +98,8 @@ updateTask :: Members '[ Logger
            -> Int64
            -> Common.NewTaskRequest
            -> Sem r (Either ServerError NoContent)
-updateTask authUser taskId request =
+updateTask authUser taskId request = do
+    printLogt LevelInfo [i|user #{authUser ^. Common.user_email} is updating task #{taskId}|]
     Persist.withConn $ \conn -> do
       r <- runExceptT $ do
         _ <- maybeToExceptT err404 . MaybeT $ Persist.get conn campusId
@@ -137,7 +138,7 @@ updateTask authUser taskId request =
     abstract = request ^. Common.newTaskRequest_abstract
     description = request ^. Common.newTaskRequest_description
 
-publishTask :: Members '[ Logger
+changeStatus :: Members '[ Logger
                         , Persist.ConnectionPool
                         , Persist.ReadEntity User
                         , Persist.ReadEntity Task
@@ -146,17 +147,24 @@ publishTask :: Members '[ Logger
                         ] r
             => Common.User
             -> Int64
+            -> Maybe Common.TaskAction
             -> Sem r (Either ServerError NoContent)
-publishTask authUser taskId =
+changeStatus authUser taskId taskAction =
     Persist.withConn $ \conn -> runExceptT $ do
       task <- maybeToExceptT err404 . MaybeT $ Persist.get conn taskId'
-      maybeToExceptT err403 $ liftBool $ ownsTask conn authUser task
-      if taskCurrentStatus task /= coerce Common.TaskStatusReviewing
-      then throwE err412
-      else do
-        maybeToExceptT err500 $ liftBool $ ES.updateTaskStatus (showt taskId) Common.TaskStatusPublished
-        lift $ Persist.update conn taskId' [TaskCurrentStatus =. coerce Common.TaskStatusPublished]
-        pure NoContent
+      let taskActionMaybe = Common.nextTaskAction (coerce (taskCurrentStatus task)) (toSqlKey (authUser ^. Common.user_id))
+            (taskCreator task) (taskTaker task)
+      case taskActionMaybe of
+        Nothing -> throwE err412
+        Just action ->
+          if Just action /= taskAction
+          then throwE err412 { errBody = "unexpected action" }
+          else do
+            let oldStatus = taskCurrentStatus task
+                newStatus = succ oldStatus
+            maybeToExceptT err500 $ liftBool $ ES.updateTaskStatus (showt taskId) (coerce newStatus)
+            lift $ Persist.update conn taskId' [TaskCurrentStatus =. newStatus]
+            pure NoContent
   where
     taskId' = toSqlKey taskId
 

@@ -7,7 +7,7 @@ module CROE.Frontend.Client.Protected
   , TaskClient(..)
   , taskClient_new
   , taskClient_update
-  , taskClient_publish
+  , taskClient_changeStatus
   , taskClient_get
   , taskClient_search
   , taskClient_reindex
@@ -38,9 +38,10 @@ data TaskClient t m = TaskClient
                        -> Dynamic t (Either Text NewTaskRequest)
                        -> Event t ()
                        -> m (Event t (ReqResult () NoContent))
-  , _taskClient_publish :: Dynamic t (Either Text Int64)
-                        -> Event t ()
-                        -> m (Event t (ReqResult () NoContent))
+  , _taskClient_changeStatus :: Dynamic t (Either Text Int64)
+                             -> Dynamic t (QParam TaskAction)
+                             -> Event t ()
+                             -> m (Event t (ReqResult () NoContent))
   , _taskClient_get :: Dynamic t (Either Text Int64)
                     -> Event t ()
                     -> m (Event t (ReqResult () TaskDetail))

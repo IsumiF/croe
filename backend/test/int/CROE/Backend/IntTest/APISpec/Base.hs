@@ -25,9 +25,10 @@ module CROE.Backend.IntTest.APISpec.Base
   , TaskClient(..)
   , taskClient_newTask
   , taskClient_updateTask
-  , taskClient_publishTask
+  , taskClient_updateStatus
   , taskClient_getTask
   , taskClient_search
+  , taskClient_reindex
   , SchoolClient(..)
   , schoolClient_get
   ) where
@@ -110,7 +111,7 @@ servantClient =
       _client_protected user =
         let ( _taskClient_newTask
               :<|> _taskClient_updateTask
-              :<|> _taskClient_publishTask
+              :<|> _taskClient_updateStatus
               :<|> _taskClient_getTask
               :<|> _taskClient_search
               :<|> _taskClient_reindex
@@ -140,12 +141,12 @@ data ProtectedClient = ProtectedClient
   }
 
 data TaskClient = TaskClient
-  { _taskClient_newTask     :: NewTaskRequest -> ClientM Int64
-  , _taskClient_updateTask  :: Int64 -> NewTaskRequest -> ClientM NoContent
-  , _taskClient_publishTask :: Int64 -> ClientM NoContent
-  , _taskClient_getTask     :: Int64 -> ClientM TaskDetail
-  , _taskClient_search      :: TaskQueryCondition -> ClientM TaskSearchResult
-  , _taskClient_reindex     :: ClientM NoContent
+  { _taskClient_newTask      :: NewTaskRequest -> ClientM Int64
+  , _taskClient_updateTask   :: Int64 -> NewTaskRequest -> ClientM NoContent
+  , _taskClient_updateStatus :: Int64 -> Maybe TaskAction -> ClientM NoContent
+  , _taskClient_getTask      :: Int64 -> ClientM TaskDetail
+  , _taskClient_search       :: TaskQueryCondition -> ClientM TaskSearchResult
+  , _taskClient_reindex      :: ClientM NoContent
   }
 
 data SchoolClient = SchoolClient

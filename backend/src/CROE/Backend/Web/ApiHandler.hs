@@ -28,7 +28,7 @@ apiHandler =
       \user ->
         ( ExceptT . Task.newTask user
         :<|> (\a b -> ExceptT $ Task.updateTask user a b)
-        :<|> ExceptT . Task.publishTask user
+        :<|> (\a b -> ExceptT $ Task.changeStatus user a b)
         :<|> ExceptT . Task.getTask user
         :<|> ExceptT . Task.searchTask user
         :<|> ExceptT (Task.reindex user)

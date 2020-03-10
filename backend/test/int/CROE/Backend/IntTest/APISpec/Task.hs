@@ -37,7 +37,7 @@ spec =
             getTask taskId
           lift $ updatedTask ^. taskDetail_description `shouldBe` "修改后的描述"
           void $ liftEitherMShow $ runClientM' server $
-            publishTask taskId
+            updateStatus taskId (Just TaskActionPublish)
           publishedTask <- liftEitherMShow $ runClientM' server $
             getTask taskId
           lift $ publishedTask ^. taskDetail_status `shouldBe` TaskStatusPublished
@@ -55,7 +55,7 @@ spec =
     taskClient = _protectedClient_task $ _client_protected servantClient authData
     newTask = _taskClient_newTask taskClient
     updateTask = _taskClient_updateTask taskClient
-    publishTask = _taskClient_publishTask taskClient
+    updateStatus = _taskClient_updateStatus taskClient
     getTask = _taskClient_getTask taskClient
     searchTask = _taskClient_search taskClient
 

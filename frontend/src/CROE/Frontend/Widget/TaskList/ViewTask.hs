@@ -9,6 +9,7 @@ module CROE.Frontend.Widget.TaskList.ViewTask
 import           Control.Lens
 import           Control.Monad.IO.Class
 import           CROE.Common.Task
+import           CROE.Common.User
 import           CROE.Common.Util                  (showt)
 import           CROE.Frontend.Client
 import           Data.Int
@@ -20,10 +21,11 @@ import           Reflex.Dom.Bulma.Component.Button
 import           Text.Printf
 
 viewTaskWidget :: MonadWidget t m
-               => (Int64, Task)
+               => User
+               -> (Int64, Task)
                -> TaskClient t m
-               -> m (Event t (), Event t ()) -- ^(go back, update task)
-viewTaskWidget (taskId, task) client =
+               -> m (Event t (), Event t ()) -- ^(go back, edit)
+viewTaskWidget user (taskId, task) client =
     elClass "section" "section" $
       divClass "columns" $ do
         tz <- liftIO getCurrentTimeZone
@@ -58,11 +60,21 @@ viewTaskWidget (taskId, task) client =
             divClass "column" $
               divClass "is-pulled-right" $ do
                 (backEvt', _) <- buttonAttr ("class" =: "button croe-has-margin-right") $ text "返回"
-                (editEvt', _) <- buttonAttr ("class" =: "button croe-has-margin-right") $ text "编辑"
-                (publishEvt', _) <- buttonAttr ("class" =: "button") $ text "发布"
+                -- 自己是创建人，并且任务状态是reviewing，才可以编辑
+                let editable = user ^. user_id == task ^. task_creatorId && task ^. task_status == TaskStatusReviewing
+                (editEvt', _) <- buttonAttr ("class" =: ("button croe-has-margin-right" <> if not editable then " is-hidden" else "")) $ text "编辑"
+                let action = nextAction (task ^. task_status)
+                    actionStr = showTaskAction action
+                    hasAction = canDoAction action (user ^. user_id) task
+                (actionEvt', _) <- buttonAttr ("class" =: ("button" <> if hasAction then "" else " is-hidden")) $ text actionStr
                 pure (backEvt', editEvt')
-          el "div" $
-            el "p" $ text "详细描述"
+          el "div" $ do
+            postBuildEvt <- getPostBuild
+            getTaskResult <- getTask (constDyn (Right taskId)) postBuildEvt
+            let taskDetailEvt = filterRight (fmap reqResultToEither getTaskResult)
+                descriptionEvt = fmap (^. taskDetail_description) taskDetailEvt
+            descriptionDyn <- holdDyn "" descriptionEvt
+            el "p" $ dynText descriptionDyn
 
           pure (backEvt, editEvt)
   where
@@ -94,3 +106,15 @@ formatDuration (begin, end) = formatLocalTime begin <> " ~ " <> formatLocalTime 
 
 durationToLocal :: TimeZone -> (UTCTime, UTCTime) -> (LocalTime, LocalTime)
 durationToLocal tz (t1, t2) = (utcToLocalTime tz t1, utcToLocalTime tz t2)
+
+showTaskAction :: TaskAction -> Text
+showTaskAction TaskActionPublish = "发布"
+showTaskAction TaskActionAccept  = "接受"
+showTaskAction TaskActionSubmit  = "提交"
+showTaskAction TaskActionConfirm = "确认完成"
+
+canDoAction :: TaskAction -> Int64 -> Task -> Bool
+canDoAction TaskActionPublish myId task = task ^. task_creatorId == myId
+canDoAction TaskActionAccept myId task  = task ^. task_creatorId /= myId
+canDoAction TaskActionSubmit myId task  = task ^. task_takerId == Just myId
+canDoAction TaskActionConfirm myId task = task ^. task_creatorId == myId

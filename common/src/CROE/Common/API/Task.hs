@@ -30,7 +30,7 @@ import           CROE.Common.Util (aesonOptions)
 type API = "task" :>
   ( APINew
   :<|> APIUpdate
-  :<|> APIPublish
+  :<|> APIChangeStatus
   :<|> APIGet
   :<|> APISearch
   :<|> APIReindex
@@ -43,8 +43,9 @@ type APIUpdate = Capture "id" Int64
   :> ReqBody '[JSON] NewTaskRequest
   :> Put '[JSON] NoContent
 
-type APIPublish = Capture "id" Int64
-  :> "publish"
+type APIChangeStatus = Capture "id" Int64
+  :> "change_status"
+  :> QueryParam "action" TaskAction
   :> Post '[JSON] NoContent
 
 type APIGet = Capture "id" Int64

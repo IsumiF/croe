@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase  #-}
 {-# LANGUAGE RecursiveDo #-}
 
 module CROE.Frontend.Widget
@@ -37,7 +38,10 @@ primaryWidget env = mdo
         authDataDyn = (fmap . fmap) toBasicAuthData userPwd
         protectedClient = (env ^. env_client . client_protected) authDataDyn
 
-    showWidget (fmap not isEntrance) (taskListWidget protectedClient)
+    dyn_ $ ffor userPwd $ \case
+      Nothing -> blank
+      Just userPwd' ->
+        taskListWidget (userPwd' ^. userPassword_user) protectedClient
 
     blank
   where
