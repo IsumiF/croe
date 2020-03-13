@@ -46,6 +46,7 @@ dependencies:
   - file-embed
   - filepath
   - hashable
+  - hedis
   - http-client
   - http-client-tls
   - http-types
@@ -68,6 +69,7 @@ dependencies:
   - servant
   - servant-client
   - servant-server
+  - servant-websockets
   - string-interpolate
   - string-interpolate
   - temporary
@@ -76,10 +78,12 @@ dependencies:
   - transformers
   - transformers-base
   - unliftio-core
+  - unliftio
   - unordered-containers
   - wai-cors
   - warp
   - warp-tls
+  - websockets
 
 library:
   source-dirs: src

@@ -27,6 +27,7 @@ library
       CROE.Frontend.Widget.TaskList.ViewTask
       CROE.Frontend.Widget.Navbar
       CROE.Frontend.Widget.Pagination
+      CROE.Frontend.Widget.Chat
   hs-source-dirs:
       src
   default-extensions: OverloadedStrings OverloadedLists

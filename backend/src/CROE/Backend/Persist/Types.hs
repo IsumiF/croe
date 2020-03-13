@@ -28,6 +28,8 @@ module CROE.Backend.Persist.Types
   , Duration
   , Review(..)
   , ReviewId
+  , ChatMessage(..)
+  , ChatMessageId
   , EntityField(..)
   , migrateAll
   , Unique(UniqueUserEmail)
@@ -89,6 +91,11 @@ Review
   from UserId Maybe
   rating Double
   message Text Maybe
+  deriving Show
+ChatMessage
+  from UserId
+  to UserId
+  body Text
   deriving Show
 |]
 

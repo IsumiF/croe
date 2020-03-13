@@ -16,12 +16,16 @@ import           Servant
 import           CROE.Backend.Env
 import           CROE.Backend.Service.Auth.Class (checkBasicAuth)
 import           CROE.Backend.Web.ApiHandler
+import           CROE.Backend.Web.WebSocket      (wsHandler)
 import           CROE.Common.API
+import           Servant.API.WebSocket
 
-type APIWithStatic = API :<|> Raw
+type APIWithStatic = API :<|> APIWebSocket :<|> Raw
+
+type APIWebSocket = "ws" :> BasicAuth "croe" User :> WebSocket
 
 handler :: ServerT APIWithStatic (ExceptT ServerError (Sem AppEffects))
-handler = apiHandler :<|> serveDirectoryWebApp "static/"
+handler = apiHandler :<|> wsHandler :<|> serveDirectoryWebApp "static/"
 
 toRawHandler :: Env -> ExceptT ServerError (Sem AppEffects) a -> Handler a
 toRawHandler env app = do

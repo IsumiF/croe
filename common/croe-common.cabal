@@ -21,6 +21,7 @@ library
     CROE.Common.User
     CROE.Common.Task
     CROE.Common.School
+    CROE.Common.WebSocket
   hs-source-dirs: src
   build-depends:
       base
