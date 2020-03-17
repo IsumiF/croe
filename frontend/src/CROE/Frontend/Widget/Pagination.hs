@@ -7,6 +7,7 @@ module CROE.Frontend.Widget.Pagination
   ( pagination
   , PaginationConfig
   , paginationConfig_total
+  , paginationConfig_size
   , Pagination
   , pagination_current
   ) where
@@ -20,13 +21,23 @@ import           Reflex.Dom                        hiding (current)
 import           Reflex.Dom.Bulma.Component.Button (linkButtonDynAttr_)
 import           Reflex.Dom.Contrib.CssClass
 
-newtype PaginationConfig t = PaginationConfig
-  { _paginationConfig_total             :: Dynamic t Integer
+data PaginationConfig t = PaginationConfig
+  { _paginationConfig_total :: Dynamic t Integer
+  , _paginationConfig_size  :: PaginationSize
   }
+
+data PaginationSize = PgSizeIsDefault | PgSizeIsSmall | PgSizeIsMedium | PgSizeIsLarge
+
+pgSizeToClass :: PaginationSize -> CssClass
+pgSizeToClass PgSizeIsDefault = mempty
+pgSizeToClass PgSizeIsSmall   = "is-small"
+pgSizeToClass PgSizeIsMedium  = "is-medium"
+pgSizeToClass PgSizeIsLarge   = "is-large"
 
 instance Reflex t => Default (PaginationConfig t) where
   def = PaginationConfig
     { _paginationConfig_total = constDyn 1
+    , _paginationConfig_size = PgSizeIsDefault
     }
 
 makeLenses ''PaginationConfig
@@ -40,8 +51,8 @@ makeLenses ''Pagination
 pagination :: forall t m. MonadWidget t m
            => PaginationConfig t
            -> m (Pagination t)
-pagination (PaginationConfig total) =
-    elAttr "nav" ("class" =: "pagination" <> "role" =: "navigation") $
+pagination (PaginationConfig total size) =
+    elAttr "nav" ("class" =: renderClass ("pagination" <> pgSizeToClass size) <> "role" =: "navigation") $
       elClass "ul" "pagination-list" $ mdo
         let current :: Dynamic t Integer
             firstItemClass = fmap (\c -> itemClass False (c >= 2)) current

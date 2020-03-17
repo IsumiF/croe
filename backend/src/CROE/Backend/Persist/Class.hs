@@ -16,6 +16,7 @@ module CROE.Backend.Persist.Class
   , selectFirst
   , selectList
   , selectKeysList
+  , count
   , WriteEntity
   , insert
   , insert_
@@ -24,6 +25,7 @@ module CROE.Backend.Persist.Class
   , update
   , updateWhere
   , upsert
+  , RawSqlRunner
   ) where
 
 import           CROE.Backend.Persist.Internal

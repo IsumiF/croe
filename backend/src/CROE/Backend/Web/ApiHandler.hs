@@ -11,9 +11,10 @@ import           Polysemy
 import           Servant
 
 import           CROE.Backend.Env
-import qualified CROE.Backend.Service.School as School
-import qualified CROE.Backend.Service.Task   as Task
-import qualified CROE.Backend.Service.User   as User
+import qualified CROE.Backend.Service.ChatHistory as ChatHistory
+import qualified CROE.Backend.Service.School      as School
+import qualified CROE.Backend.Service.Task        as Task
+import qualified CROE.Backend.Service.User        as User
 import           CROE.Common.API
 
 apiHandler :: ServerT API (ExceptT ServerError (Sem AppEffects))
@@ -34,4 +35,9 @@ apiHandler =
         :<|> ExceptT (Task.reindex user)
         ) :<|>
           ExceptT (School.getSchoolList user)
+        :<|> ( (\a b c -> ExceptT $ ChatHistory.messageList user a b c)
+          :<|> (\a b -> ExceptT $ ChatHistory.contactList user a b)
+          :<|> (ExceptT (ChatHistory.totalUnreadCount user))
+          :<|> (ExceptT . ChatHistory.markAsRead user)
+        )
     )

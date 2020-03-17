@@ -14,6 +14,7 @@ backend:
 .PHONY: backend
 
 frontend:
+	cd frontend/sass && npm i
 	mkdir -p output/static/
 	mkdir -p output/temp/
 	# build and copy GHCJS generated files
@@ -45,4 +46,4 @@ deploy:
 	./local_scripts/deploy.sh
 
 count:
-	tokei --exclude reflex-platform --exclude frontend/sass/bulma --exclude frontend/static
+	tokei --exclude reflex-platform

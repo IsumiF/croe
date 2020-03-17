@@ -10,22 +10,24 @@ module CROE.Backend.Service.Chat.Base
 import           Control.Concurrent.MVar
 import           Control.Lens
 import           Control.Monad                   (forever)
+import           CROE.Backend.Clock.Class
 import           CROE.Backend.Logger.Class
 import qualified CROE.Backend.Persist.Class      as Persist
 import           CROE.Backend.Persist.Types
 import           CROE.Backend.Redis.Class        (Redis)
 import qualified CROE.Backend.Redis.Class        as Redis
 import           CROE.Backend.Service.Chat.Class
+import qualified CROE.Common.Chat                as Common
 import qualified CROE.Common.User                as Common
-import qualified CROE.Common.WebSocket           as Common
 import           Data.Aeson                      (eitherDecode, encode)
 import           Data.ByteString                 (ByteString)
 import qualified Data.ByteString.Lazy            as LBS
+import           Data.Coerce
 import           Data.Functor                    (void)
 import           Data.Int
 import           Data.String.Interpolate         (i)
 import           Data.Text
-import           Database.Persist.Sql            (toSqlKey)
+import           Database.Persist.Sql            (fromSqlKey, toSqlKey)
 import           Polysemy
 import           Polysemy.Async
 
@@ -35,6 +37,7 @@ runChatService :: ( Members '[ Logger
                              , Persist.WriteEntity ChatMessage
                              , Embed IO
                              , Async
+                             , Clock
                              ] r
                   )
                => Sem (ChatService : r) a
@@ -47,29 +50,33 @@ sendMessageImpl :: Members '[ Logger
                             , Redis
                             , Persist.ConnectionPool
                             , Persist.WriteEntity ChatMessage
+                            , Clock
                             ] r
                 => Common.User
-                -> Common.ChatMessage
+                -> Common.SendChatMessage
                 -> Sem r ()
-sendMessageImpl user msg =
-    if user ^. Common.user_id /= msg ^. Common.chatMessage_from
-    then printLogt LevelWarn [i|user #{user ^. Common.user_id} trying to send message as #{msg ^. Common.chatMessage_from}|]
-    else do
-      printLogt LevelInfo [i|send message #{msg}|]
-      -- send to redis
-      reply <- Redis.publish (channelForUser toId) (LBS.toStrict (encode msg))
-      case reply of
-        Left (Redis.Error errMsg) -> printLogt LevelError [i|send message failed, reason: #{errMsg}|]
-        _                         -> pure ()
-      -- save to mysql
-      let msg' = chatMessageFromCommon msg
-      Persist.withConn $ \conn -> Persist.insert_ conn msg'
+sendMessageImpl user msg = do
+    printLogt LevelInfo [i|send message #{msg}|]
+    now <- currentTimeUTC
+    let msg' = ChatMessage
+          (toSqlKey (user ^. Common.user_id))
+          (toSqlKey toId)
+          now
+          (msg ^. Common.sendChatMessage_body)
+          (coerce Common.CmsUnread)
+    -- save to mysql
+    msgId <- Persist.withConn $ \conn -> Persist.insert conn msg'
+    -- send to redis
+    reply <- Redis.publish (channelForUser toId) (LBS.toStrict (encode (msgId, msg')))
+    case reply of
+      Left (Redis.Error errMsg) -> printLogt LevelError [i|send message failed, reason: #{errMsg}|]
+      _                         -> pure ()
   where
-    toId = Common._chatMessage_to msg
+    toId = msg ^. Common.sendChatMessage_to
 
 receiveMessageImpl :: Members '[Redis, Embed IO, Logger, Async] r
                    => Common.User
-                   -> MVar Common.ChatMessage
+                   -> MVar Common.ReceiveChatMessage
                    -> Sem r ()
 receiveMessageImpl user msgMVar = do
     logMVar :: MVar (Maybe Text) <- embed newEmptyMVar
@@ -85,7 +92,16 @@ receiveMessageImpl user msgMVar = do
             Left errMsg ->
               putMVar logMVar $
                 Just [i|fail to decode chat message received from redis, reason: #{errMsg}, data: #{rawMessage}|]
-            Right msg -> putMVar msgMVar msg >> putMVar logMVar Nothing
+            Right ((msgId, msg) :: (ChatMessageId, ChatMessage)) -> do
+              let receiveMsg = Common.ReceiveChatMessage
+                    { Common._receiveChatMessage_id = fromSqlKey msgId
+                    , Common._receiveChatMessage_from = fromSqlKey (chatMessageFrom msg)
+                    , Common._receiveChatMessage_body = chatMessageBody msg
+                    , Common._receiveChatMessage_time = chatMessageTime msg
+                    , Common._receiveChatMessage_status = coerce (chatMessageStat msg)
+                    }
+              putMVar msgMVar receiveMsg
+              putMVar logMVar Nothing
         msg@Redis.PMessage{} -> putMVar logMVar $ Just
           [i|unexpected type of message received from redis, data: #{msg}|]
       pure mempty
@@ -93,13 +109,6 @@ receiveMessageImpl user msgMVar = do
   where
     currentUserId = user ^. Common.user_id
     channel = channelForUser currentUserId
-
-chatMessageFromCommon :: Common.ChatMessage -> ChatMessage
-chatMessageFromCommon Common.ChatMessage{..} = ChatMessage
-  { chatMessageFrom = toSqlKey _chatMessage_from
-  , chatMessageTo = toSqlKey _chatMessage_to
-  , chatMessageBody = _chatMessage_body
-  }
 
 channelForUser :: Int64 -> ByteString
 channelForUser uid = [i|chat.to.#{uid}|]

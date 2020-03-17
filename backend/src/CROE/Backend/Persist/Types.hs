@@ -13,7 +13,6 @@ module CROE.Backend.Persist.Types
   ( User(..)
   , Role(..)
   , UserId
-  , userToCommon
   , UserRegistry(..)
   , UserRegistryId
   , School(..)
@@ -30,23 +29,24 @@ module CROE.Backend.Persist.Types
   , ReviewId
   , ChatMessage(..)
   , ChatMessageId
+  , ChatMessageStatus(..)
   , EntityField(..)
   , migrateAll
   , Unique(UniqueUserEmail)
   ) where
 
-import           Data.ByteString                       (ByteString)
-import           Data.Coerce
-import           Data.Text                             (Text)
+import           Data.Aeson
+import           Data.ByteString                              (ByteString)
+import           Data.Text                                    (Text)
 import           Data.Time
-import           Data.Word                             (Word64)
+import           Data.Word                                    (Word64)
 import           Database.Persist
-import           Database.Persist.Sql                  (fromSqlKey)
 import           Database.Persist.TH
+import           GHC.Generics
 
+import           CROE.Backend.Persist.Types.ChatMessageStatus
 import           CROE.Backend.Persist.Types.Role
 import           CROE.Backend.Persist.Types.TaskStatus
-import qualified CROE.Common.User                      as Common
 
 type Duration = (UTCTime, UTCTime)
 
@@ -95,13 +95,13 @@ Review
 ChatMessage
   from UserId
   to UserId
+  time UTCTime
   body Text
-  deriving Show
+  stat ChatMessageStatus
+  deriving Show Generic
 |]
 
-userToCommon :: Entity User -> Common.User
-userToCommon (Entity userId user) = Common.User
-    (userEmail user)
-    (userName user)
-    (coerce (userRole user))
-    (fromSqlKey userId)
+instance FromJSON ChatMessage
+
+instance ToJSON ChatMessage where
+  toEncoding = genericToEncoding defaultOptions

@@ -49,14 +49,20 @@ newClient (Config baseUrl) =
         _client_protected user =
           let ( _taskClient_new
                 :<|> _taskClient_update
-                :<|> _taskClient_publish
+                :<|> _taskClient_changeStatus
                 :<|> _taskClient_get
                 :<|> _taskClient_search
                 :<|> _taskClient_reindex
-                ) :<|>
-                  _schoolClient_get
+                )
+                :<|> _schoolClient_get
+                :<|> (
+                  _chatClient_messages
+                  :<|> _chatClient_contactList
+                  :<|> _chatClient_totalUnreadCount
+                )
                   = protected user
               _protectedClient_task = TaskClient{..}
               _protectedClient_school = SchoolClient{..}
+              _protectedClient_chat = ChatClient{..}
            in ProtectedClient{..}
      in Client{..}

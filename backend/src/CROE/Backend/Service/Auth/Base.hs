@@ -23,6 +23,7 @@ import           System.Clock
 
 import           CROE.Backend.Persist.Class
 import           CROE.Backend.Service.Auth.Class
+import           CROE.Backend.Service.Convert
 import qualified CROE.Common.API.User            as Common
 import           CROE.Common.Util                (aesonOptions)
 

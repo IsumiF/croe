@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>聊天窗</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.8.0/css/bulma.min.css">
+  <link rel="stylesheet"
+    href="http://127.0.0.1:8082/node_modules/bulma-extensions/bulma-divider/dist/css/bulma-divider.min.css">
+  <link rel="stylesheet"
+    href="http://127.0.0.1:8082/node_modules/bulma-extensions/bulma-badge/dist/css/bulma-badge.min.css">
+  <script defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"></script>
+  <style>
+    .chatbox-wrapper {
+      position: fixed;
+      right: 3em;
+      bottom: 3em;
+    }
+
+    .chatbox {
+      margin-bottom: 1em;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="chatbox-wrapper">
+    <div class="chatbox card">
+      <div class="card-content">
+        <div class="columns">
+          <div class="column is-narrow" style="display: flex; flex-direction: column;">
+            <div class="menu" style="flex-grow: 1;">
+              <ul class="menu-list">
+                <li><a class="is-active has-badge-rounded has-badge-danger has-badge-medium"
+                    data-badge="3">fzl(fengzlin@mail2.sysu.edu.cn)</a></li>
+                <li><a>isumi(steven172307@gmail.com)</a></li>
+              </ul>
+            </div>
+            <div>
+              <nav class="pagination is-small" role="navigation" aria-label="pagination">
+                <ul class="pagination-list">
+                  <li>
+                    <a class="pagination-link" aria-label="Goto page 1">1</a>
+                  </li>
+                  <li>
+                    <span class="pagination-ellipsis">&hellip;</span>
+                  </li>
+                  <li>
+                    <a class="pagination-link" aria-label="Goto page 45">45</a>
+                  </li>
+                  <li>
+                    <a class="pagination-link is-current" aria-label="Page 46" aria-current="page">46</a>
+                  </li>
+                  <li>
+                    <a class="pagination-link" aria-label="Goto page 47">47</a>
+                  </li>
+                  <li>
+                    <span class="pagination-ellipsis">&hellip;</span>
+                  </li>
+                  <li>
+                    <a class="pagination-link" aria-label="Goto page 86">86</a>
+                  </li>
+                </ul>
+              </nav>
+            </div>
+          </div>
+          <div class="is-divider-vertical"></div>
+          <div class="column" style="max-height: 20em; overflow-y: scroll;">
+            <div style="max-width: 20em;">
+              <div style="text-align: center; margin-bottom: 1em;">
+                <button class="button is-small">显示更多</button>
+              </div>
+              <p style="padding-right: 3em;">
+                2020/03/20 10:00:05 <br>
+                你好啊
+              </p>
+              <p style="text-align: right; padding-left: 3em;">
+                2020/03/20 10:00:05 <br>
+                嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯
+              </p>
+              <p style="text-align: right; padding-left: 3em;">
+                2020/03/20 10:00:05 <br>
+                嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯
+              </p>
+              <p style="text-align: right; padding-left: 3em;">
+                2020/03/20 10:00:05 <br>
+                嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯
+              </p>
+              <p style="text-align: right; padding-left: 3em;">
+                2020/03/20 10:00:05 <br>
+                嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯
+              </p>
+              <p style="text-align: right; padding-left: 3em;">
+                2020/03/20 10:00:05 <br>
+                嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button class="button is-info is-pulled-right has-badge-rounded has-badge-danger has-badge-large" data-badge="8">
+      <p>
+        聊天室
+      </p>
+      <!-- <span class="icon is-right">
+        <i class="fas fa-caret-up"></i>
+      </span> -->
+      <span class="icon is-right">
+        <i class="fas fa-caret-down"></i>
+      </span>
+    </button>
+  </div>
+</body>
+
+</html>

@@ -1,6 +1,9 @@
 module CROE.Backend.Persist.Internal where
 
-import           Database.Persist.Sql       (SqlBackend)
+import           Control.Monad.Reader
+import           Data.Text                  (Text)
+import           Database.Persist.Sql       (RawSql, SqlBackend)
+import qualified Database.Persist.Sql       as Persist
 import           Database.Persist.Types
 import           Polysemy
 
@@ -24,6 +27,7 @@ data ReadEntity record (m :: * -> *) a where
   SelectFirst :: Connection -> [Filter record] -> [SelectOpt record] -> ReadEntity record m (Maybe (Entity record))
   SelectList :: Connection -> [Filter record] -> [SelectOpt record] -> ReadEntity record m [Entity record]
   SelectKeysList :: Connection -> [Filter record] -> [SelectOpt record] -> ReadEntity record m [Key record]
+  Count :: Connection -> [Filter record] -> ReadEntity record m Int
 
 makeSem ''ReadEntity
 
@@ -37,3 +41,16 @@ data WriteEntity record (m :: * -> *) a where
   Upsert :: Connection -> record -> [Update record] -> WriteEntity record m (Entity record)
 
 makeSem ''WriteEntity
+
+data RawSqlRunner (m :: * -> *) a where
+  RawSql :: RawSql b => Connection -> Text -> [PersistValue] -> RawSqlRunner m [b]
+  RawExecuteCount :: Connection -> Text -> [PersistValue] -> RawSqlRunner m Int
+
+makeSem ''RawSqlRunner
+
+runRawSqlRunner :: Member (Embed IO) r
+                => Sem (RawSqlRunner : r) a
+                -> Sem r a
+runRawSqlRunner = interpret $ \case
+    RawSql conn sql args -> runReaderT (Persist.rawSql sql args) conn
+    RawExecuteCount conn sql args -> fromIntegral <$> runReaderT (Persist.rawExecuteCount sql args) conn

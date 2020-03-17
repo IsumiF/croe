@@ -33,16 +33,17 @@ wsHandler' :: forall r. Constraint r
            -> Sem r (Either ServerError ())
 wsHandler' user conn = do
     printLogt LevelInfo [i|user #{user ^. user_id} is connecting through websocket|]
-    msgReceivedMVar :: MVar ChatMessage <- newEmptyMVar -- 当前用户接收到的消息
+    msgReceivedMVar :: MVar ReceiveChatMessage <- newEmptyMVar -- 当前用户接收到的消息
     void . async $ receiveMessage user msgReceivedMVar
     void . async . forever $ do
       msgReceived <- embed $ takeMVar msgReceivedMVar
       printLogt LevelInfo [i|msgReceived: #{msgReceived}|]
-      embed $ sendTextData conn (renderWsMessage (WsMessageChat msgReceived))
+      embed $ sendTextData conn (renderWsMessage (WsReceiveChatMessage msgReceived))
     void . forever $ do
       msg :: Maybe WsMessage <- parseWsMessage <$> embed (receiveData conn)
       case msg of
         Nothing               -> printLogt LevelWarn "illegal websocket message format"
         Just msg' -> case msg' of
-          WsMessageChat chatMsg -> sendMessage user chatMsg
+          WsSendChatMessage chatMsg -> sendMessage user chatMsg
+          WsReceiveChatMessage _    -> printLogt LevelWarn [i|user #{user ^. user_id} is trying to send message of type WsReceiveChatMessage|]
     pure $ Right ()

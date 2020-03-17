@@ -35,6 +35,8 @@ import qualified CROE.Backend.Mail.Class                  as Mail
 import qualified CROE.Backend.ObjectStorage.Base          as ObjectStorage
 import           CROE.Backend.ObjectStorage.Class
 import qualified CROE.Backend.Persist.Base                as Persist
+import           CROE.Backend.Persist.Chat                (ChatRepo,
+                                                           runChatRepo)
 import qualified CROE.Backend.Persist.Class               as Persist
 import           CROE.Backend.Random.Base
 import qualified CROE.Backend.Redis.Base                  as Redis
@@ -93,8 +95,10 @@ instance MonadUnliftIO (Sem AppEffects) where
 type AppEffects =
   '[ ChatService
    , AuthService
+   , ChatRepo
    , Persist.ConnectionPool
    , Persist.Transactional
+   , Persist.RawSqlRunner
    , Persist.ReadEntity Persist.User
    , Persist.WriteEntity Persist.User
    , Persist.ReadEntity Persist.UserRegistry
@@ -127,8 +131,10 @@ runApp :: Env -> Sem AppEffects a -> IO a
 runApp env@Env{..} app = app
     & runChatService
     & AuthService.runService _env_authService
+    & runChatRepo
     & Persist.runConnectionPool _env_persist
     & Persist.runTransactional
+    & Persist.runRawSqlRunner
     & Persist.runReadEntity
     & Persist.runWriteEntity
     & Persist.runReadEntity

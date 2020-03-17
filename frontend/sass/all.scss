@@ -1,6 +1,6 @@
 @charset "utf-8";
-@import "./bulma/bulma.sass";
-@import "./bulma-checkradio/dist/css/bulma-checkradio.sass";
+@import "./node_modules/bulma/bulma.sass";
+@import "./node_modules/bulma-extensions/bulma-checkradio/dist/css/bulma-checkradio.sass";
 @import "./task_list.scss";
 
 .notification.is-danger.is-light {

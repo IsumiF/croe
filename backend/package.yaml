@@ -54,6 +54,7 @@ dependencies:
   - monad-control
   - monad-logger
   - mtl
+  - mysql
   - optparse-applicative
   - pandoc
   - pandoc-types

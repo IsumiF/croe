@@ -18,10 +18,13 @@ library
     CROE.Common.API.User
     CROE.Common.API.Task
     CROE.Common.API.School
+    CROE.Common.API.Chat
+    CROE.Common.API.WithTotal
     CROE.Common.User
     CROE.Common.Task
     CROE.Common.School
     CROE.Common.WebSocket
+    CROE.Common.Chat
   hs-source-dirs: src
   build-depends:
       base

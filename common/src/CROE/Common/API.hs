@@ -8,6 +8,7 @@ module CROE.Common.API
 
 import           Servant.API
 
+import qualified CROE.Common.API.Chat   as Chat
 import qualified CROE.Common.API.School as School
 import qualified CROE.Common.API.Task   as Task
 import qualified CROE.Common.API.User   as User
@@ -18,5 +19,6 @@ type API = "api" :>
   :<|> BasicAuth "croe" User :>
     ( Task.API
     :<|> School.API
+    :<|> Chat.API
     )
   )

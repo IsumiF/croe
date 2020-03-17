@@ -10,6 +10,7 @@ module CROE.Backend.Persist.Base
   , runTransactional
   , runReadEntity
   , runWriteEntity
+  , runRawSqlRunner
   ) where
 
 import           Control.Monad.IO.Class
@@ -20,10 +21,12 @@ import           Data.Aeson
 import           Data.Function                 ((&))
 import           Data.Pool
 import           Data.Word                     (Word16)
+import           Database.MySQL.Base           (Option (CharsetName))
 import qualified Database.Persist              as Persist
 import           Database.Persist.MySQL        (connectDatabase, connectHost,
-                                                connectPassword, connectPort,
-                                                connectUser, defaultConnectInfo,
+                                                connectOptions, connectPassword,
+                                                connectPort, connectUser,
+                                                defaultConnectInfo,
                                                 transactionSave, withMySQLPool)
 import qualified Database.Persist.MySQL        as MySQL
 import           Database.Persist.Sql          (SqlBackend, runMigration)
@@ -93,6 +96,7 @@ withEnv' config f =
       , connectUser = _config_user config
       , connectPassword = _config_password config
       , connectDatabase = _config_database config
+      , connectOptions = [CharsetName "utf8mb4"]
       }
     numConns = _config_numConns config
 
@@ -128,6 +132,7 @@ runReadEntity = interpret $ \case
     SelectFirst conn a b -> runReaderT (Persist.selectFirst a b) conn
     SelectList conn a b -> runReaderT (Persist.selectList a b) conn
     SelectKeysList conn a b -> runReaderT (Persist.selectKeysList a b) conn
+    Count conn filters -> runReaderT (Persist.count filters) conn
 
 runWriteEntity :: ( Member (Embed IO) r
                    , Persist.PersistEntity record
