@@ -59,6 +59,7 @@ newClient (Config baseUrl) =
                   _chatClient_messages
                   :<|> _chatClient_contactList
                   :<|> _chatClient_totalUnreadCount
+                  :<|> _chatClient_markAsRead
                 )
                   = protected user
               _protectedClient_task = TaskClient{..}

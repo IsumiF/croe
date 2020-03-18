@@ -22,6 +22,7 @@ module CROE.Backend.IntTest.APISpec.Base
   , ProtectedClient(..)
   , protectedClient_task
   , protectedClient_school
+  , protectedClient_chat
   , TaskClient(..)
   , taskClient_newTask
   , taskClient_updateTask
@@ -31,6 +32,11 @@ module CROE.Backend.IntTest.APISpec.Base
   , taskClient_reindex
   , SchoolClient(..)
   , schoolClient_get
+  , ChatClient(..)
+  , chatClient_messages
+  , chatClient_contactList
+  , chatClient_totalUnreadCount
+  , chatClient_markAsRead
   ) where
 
 import           Control.Concurrent        (ThreadId, forkIO, threadDelay,
@@ -53,6 +59,8 @@ import           CROE.Backend.Main         (CmdArgs (..), mainWithArgs)
 import           CROE.Common.API
 import           CROE.Common.API.Task      hiding (API)
 import           CROE.Common.API.User      hiding (API)
+import           CROE.Common.API.WithTotal
+import           CROE.Common.Chat
 import           CROE.Common.School
 
 data Server = Server
@@ -115,10 +123,19 @@ servantClient =
               :<|> _taskClient_getTask
               :<|> _taskClient_search
               :<|> _taskClient_reindex
-              ) :<|> _schoolClient_get
+              )
+              :<|> _schoolClient_get
+              :<|> (
+                _chatClient_messages :<|>
+                _chatClient_contactList :<|>
+                _chatClient_totalUnreadCount :<|>
+                _chatClient_markAsRead
+              )
                 = protected user
             _protectedClient_task = TaskClient{..}
             _protectedClient_school = SchoolClient{..}
+            _protectedClient_chat = ChatClient{..}
+
          in ProtectedClient{..}
    in Client{..}
 
@@ -138,6 +155,7 @@ data UserClient = UserClient
 data ProtectedClient = ProtectedClient
   { _protectedClient_task   :: TaskClient
   , _protectedClient_school :: SchoolClient
+  , _protectedClient_chat   :: ChatClient
   }
 
 data TaskClient = TaskClient
@@ -149,8 +167,15 @@ data TaskClient = TaskClient
   , _taskClient_reindex      :: ClientM NoContent
   }
 
-data SchoolClient = SchoolClient
+newtype SchoolClient = SchoolClient
   { _schoolClient_get :: ClientM [School]
+  }
+
+data ChatClient = ChatClient
+  { _chatClient_messages :: Maybe Int64 -> Maybe Int -> Maybe Int -> ClientM (WithTotal [ReceiveChatMessage])
+  , _chatClient_contactList :: Maybe Int -> Maybe Int -> ClientM (WithTotal [Contact])
+  , _chatClient_totalUnreadCount :: ClientM Int
+  , _chatClient_markAsRead :: [Int64] -> ClientM NoContent
   }
 
 makeLenses ''Client
@@ -158,3 +183,4 @@ makeLenses ''UserClient
 makeLenses ''ProtectedClient
 makeLenses ''TaskClient
 makeLenses ''SchoolClient
+makeLenses ''ChatClient

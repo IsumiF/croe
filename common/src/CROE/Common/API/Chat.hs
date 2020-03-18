@@ -31,4 +31,4 @@ type APITotalUnreadCount = "total_unread_count"
 
 type APIMarkAsRead = "mark_as_read"
   :> ReqBody '[JSON] [Int64]
-  :> Post '[JSON] ()
+  :> Post '[JSON] NoContent

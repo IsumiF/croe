@@ -23,6 +23,7 @@ import           Database.Persist             ((==.))
 import           Database.Persist.Sql         (toSqlKey)
 import           Database.Persist.Types
 import           Polysemy
+import           Servant.API                  (NoContent(..))
 import           Servant.Server
 
 messageList :: Members '[ Logger
@@ -89,11 +90,11 @@ markAsRead :: Members '[ Persist.ConnectionPool
                        ] r
            => Common.User
            -> [Int64]
-           -> Sem r (Either ServerError ())
+           -> Sem r (Either ServerError NoContent)
 markAsRead me msgIds = do
     Persist.withConn $ \conn ->
       Persist.bulkUpdateStatus conn
         (toSqlKey $ me ^. Common.user_id)
         (fmap toSqlKey msgIds)
         (coerce Common.CmsRead)
-    pure $ Right ()
+    pure $ Right NoContent

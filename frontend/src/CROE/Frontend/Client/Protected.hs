@@ -19,6 +19,7 @@ module CROE.Frontend.Client.Protected
   , chatClient_messages
   , chatClient_contactList
   , chatClient_totalUnreadCount
+  , chatClient_markAsRead
   ) where
 
 import           Control.Lens
@@ -67,17 +68,20 @@ newtype SchoolClient t m = SchoolClient
   }
 
 data ChatClient t m = ChatClient
-  { _chatClient_messages :: Dynamic t (QParam Int64) -- ^from user id
-                         -> Dynamic t (QParam Int) -- ^limit
-                         -> Dynamic t (QParam Int) -- ^offset
+  { _chatClient_messages :: Dynamic t (QParam Int64) -- from user id
+                         -> Dynamic t (QParam Int) -- limit
+                         -> Dynamic t (QParam Int) -- offset
                          -> Event t ()
                          -> m (Event t (ReqResult () (WithTotal [ReceiveChatMessage])))
-  , _chatClient_contactList :: Dynamic t (QParam Int) -- ^limit
-                            -> Dynamic t (QParam Int) -- ^offset
+  , _chatClient_contactList :: Dynamic t (QParam Int) -- limit
+                            -> Dynamic t (QParam Int) -- offset
                             -> Event t ()
                             -> m (Event t (ReqResult () (WithTotal [Contact])))
   , _chatClient_totalUnreadCount :: Event t ()
                                  -> m (Event t (ReqResult () Int))
+  , _chatClient_markAsRead :: Dynamic t (Either Text [Int64])
+                           -> Event t ()
+                           -> m (Event t (ReqResult () NoContent))
   }
 
 makeLenses ''ProtectedClient
