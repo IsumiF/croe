@@ -33,6 +33,7 @@ apiHandler =
         :<|> ExceptT . Task.getTask user
         :<|> ExceptT . Task.searchTask user
         :<|> ExceptT (Task.reindex user)
+        :<|> (\a b -> ExceptT $ Task.taskAddReview user a b)
         ) :<|>
           ExceptT (School.getSchoolList user)
         :<|> ( (\a b c -> ExceptT $ ChatHistory.messageList user a b c)

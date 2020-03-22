@@ -10,6 +10,9 @@ module CROE.Common.API.User
   , registerForm_email
   , registerForm_password
   , registerForm_code
+  , PutProfileForm(..)
+  , putProfileForm_name
+  , putProfileForm_password
   , module CROE.Common.User
   ) where
 
@@ -33,7 +36,7 @@ type APIGetProfile = "profile"
   :> Get '[JSON] User
 
 type APIPutProfile = "profile"
-  :> ReqBody '[JSON] User
+  :> ReqBody '[JSON] PutProfileForm
   :> Put '[JSON] NoContent
 
 type APIApplyCode = "apply_code"
@@ -62,4 +65,17 @@ instance ToJSON RegisterForm where
   toJSON = genericToJSON aesonOptions
   toEncoding = genericToEncoding aesonOptions
 
+data PutProfileForm = PutProfileForm
+  { _putProfileForm_name     :: Text
+  , _putProfileForm_password :: Text
+  } deriving (Show, Eq, Generic)
+
+instance FromJSON PutProfileForm where
+  parseJSON = genericParseJSON aesonOptions
+
+instance ToJSON PutProfileForm where
+  toJSON = genericToJSON aesonOptions
+  toEncoding = genericToEncoding aesonOptions
+
 makeLenses ''RegisterForm
+makeLenses ''PutProfileForm

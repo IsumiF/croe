@@ -1,5 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE QuasiQuotes  #-}
+{-# LANGUAGE QuasiQuotes #-}
 
 module CROE.Backend.Service.Task
   ( newTask
@@ -8,6 +7,7 @@ module CROE.Backend.Service.Task
   , getTask
   , searchTask
   , reindex
+  , taskAddReview
   ) where
 
 import           Control.Lens                             hiding (Review)
@@ -16,6 +16,7 @@ import           Control.Monad.Trans.Except
 import           Control.Monad.Trans.Maybe
 import           Data.Coerce
 import           Data.Foldable                            (forM_)
+import           Data.Functor                             (void)
 import           Data.Int
 import           Data.Maybe
 import           Data.String.Interpolate
@@ -29,6 +30,7 @@ import           Servant.Server
 import           CROE.Backend.Logger.Class
 import           CROE.Backend.ObjectStorage.Class
 import qualified CROE.Backend.Persist.Class               as Persist
+import qualified CROE.Backend.Persist.Review              as Persist
 import           CROE.Backend.Persist.Types
 import qualified CROE.Backend.Service.Elasticsearch.Class as ES
 import qualified CROE.Common.API.Task                     as Common
@@ -44,6 +46,7 @@ newTask :: Members '[ ObjectStorage
                     , Persist.ReadEntity SchoolCampus
                     , Persist.ReadEntity School
                     , Persist.ReadEntity Review
+                    , Persist.ReviewRepo
                     , ES.Elasticsearch
                     , Logger
                     ] r
@@ -91,6 +94,7 @@ updateTask :: Members '[ Logger
                        , Persist.ReadEntity SchoolCampus
                        , Persist.ReadEntity Task
                        , Persist.WriteEntity Task
+                       , Persist.ReviewRepo
                        , ObjectStorage
                        , ES.Elasticsearch
                        ] r
@@ -143,6 +147,10 @@ changeStatus :: Members '[ Logger
                         , Persist.ReadEntity User
                         , Persist.ReadEntity Task
                         , Persist.WriteEntity Task
+                        , Persist.ReadEntity School
+                        , Persist.ReadEntity SchoolCampus
+                        , Persist.ReadEntity Review
+                        , Persist.ReviewRepo
                         , ES.Elasticsearch
                         ] r
             => Common.User
@@ -160,13 +168,15 @@ changeStatus authUser taskId taskAction =
           if Just action /= taskAction
           then throwE err412 { errBody = "unexpected action" }
           else do
-            let oldStatus = taskCurrentStatus task
+            let updateTaker = if action == Common.TaskActionAccept then [TaskTaker =. Just myId] else []
+                oldStatus = taskCurrentStatus task
                 newStatus = succ oldStatus
-            maybeToExceptT err500 $ liftBool $ ES.updateTaskStatus (showt taskId) (coerce newStatus)
-            lift $ Persist.update conn taskId' [TaskCurrentStatus =. newStatus]
+            lift $ Persist.update conn taskId' ([TaskCurrentStatus =. newStatus] <> updateTaker)
+            maybeToExceptT err500 $ liftBool $ syncTaskToES conn taskId'
             pure NoContent
   where
     taskId' = toSqlKey taskId
+    myId = toSqlKey (authUser ^. Common.user_id)
 
 getTask :: Members '[ Logger
                     , Persist.ConnectionPool
@@ -203,9 +213,18 @@ searchTask :: Members '[ ES.Elasticsearch
            => Common.User
            -> Common.TaskQueryCondition
            -> Sem r (Either ServerError Common.TaskSearchResult)
-searchTask _ queryCondition = do
-    searchResult <- ES.searchTask queryCondition
+searchTask me queryCondition = do
+    let queryCondition' =
+          if isCreatorOrTaker
+          then queryCondition
+          else queryCondition & Common.taskQueryCondition_status ?~ Common.TaskStatusPublished
+    searchResult <- ES.searchTask queryCondition'
     pure (Right searchResult)
+  where
+    myId = me ^. Common.user_id
+    creatorId = queryCondition ^. Common.taskQueryCondition_creatorId
+    takerId = queryCondition ^. Common.taskQueryCondition_takerId
+    isCreatorOrTaker = creatorId == Just myId || takerId == Just myId
 
 reindex :: Members '[ Persist.ConnectionPool
                     , Persist.ReadEntity Task
@@ -213,6 +232,7 @@ reindex :: Members '[ Persist.ConnectionPool
                     , Persist.ReadEntity SchoolCampus
                     , Persist.ReadEntity Review
                     , Persist.ReadEntity User
+                    , Persist.ReviewRepo
                     , ES.Elasticsearch
                     ] r
         => Common.User
@@ -242,22 +262,12 @@ ownsTask conn user task = do
   where
     authEmail = user ^. Common.user_email
 
-averageRate :: Member (Persist.ReadEntity Review) r
-            => Persist.Connection
-            -> Persist.Key User
-            -> Sem r (Maybe Double)
-averageRate conn key = do
-    entities <- Persist.selectList conn [ReviewUser ==. key] []
-    let !ratings = reviewRating . Persist.entityVal <$> entities
-    if null ratings
-    then pure Nothing
-    else pure . Just $ sum ratings / fromIntegral (length ratings)
-
 syncTaskToES :: Members '[ Persist.ReadEntity Task
                          , Persist.ReadEntity School
                          , Persist.ReadEntity SchoolCampus
                          , Persist.ReadEntity Review
                          , Persist.ReadEntity User
+                         , Persist.ReviewRepo
                          , ES.Elasticsearch
                          ] r
              => Persist.Connection
@@ -269,9 +279,11 @@ syncTaskToES conn taskId = fmap isJust $ runMaybeT $ do
     let schoolId = schoolCampusSchoolId campus
     school <- MaybeT $ Persist.get conn schoolId
     let locationStr = schoolName school <> " " <> schoolCampusName campus
-    creatorScore <- lift $ averageRate conn taskCreator
+    creatorScore <- lift $ Persist.averageRating conn taskCreator
     creator <- MaybeT $ Persist.get conn taskCreator
-    let esTask = Common.Task
+    reviewsOfTask <- lift $ Persist.selectList conn [ReviewTaskId ==. taskId] []
+    let reviewedByUsers = fmap (fromSqlKey . reviewFrom . Persist.entityVal) reviewsOfTask
+        esTask = Common.Task
           { Common._task_title = taskTitle
           , Common._task_abstract = taskAbstract
           , Common._task_reward = taskReward
@@ -283,5 +295,51 @@ syncTaskToES conn taskId = fmap isJust $ runMaybeT $ do
           , Common._task_campusId = fromSqlKey taskLocation
           , Common._task_takerId = fromSqlKey <$> taskTaker
           , Common._task_status = coerce taskCurrentStatus
+          , Common._task_reviewedByUsers = reviewedByUsers
           }
     liftBool $ ES.putTask (showt (fromSqlKey taskId)) esTask
+
+taskAddReview :: Members '[ Persist.ConnectionPool
+                          , Persist.WriteEntity Review
+                          , Persist.ReadEntity Review
+                          , Persist.ReadEntity Task
+                          , Persist.ReadEntity SchoolCampus
+                          , Persist.ReadEntity School
+                          , Persist.ReadEntity User
+                          , Persist.ReviewRepo
+                          , ES.Elasticsearch
+                          ] r
+              => Common.User
+              -> Int64
+              -> Common.TaskAddReview
+              -> Sem r (Either ServerError NoContent)
+taskAddReview me taskId' Common.TaskAddReview{..} = runExceptT $ do
+    task :: Task <- maybeToExceptT err404 . MaybeT . Persist.withConn $ \conn ->
+      Persist.get conn taskId
+    userIdToReview <- maybeToExceptT err403 . MaybeT . pure $ taskGetTheOtherUser task myId
+    let newReview = Review
+          { reviewUser = userIdToReview
+          , reviewFrom = myId
+          , reviewRating = _taskAddReview_score
+          , reviewMessage = _taskAddReview_reason
+          , reviewTaskId = taskId
+          }
+    void . maybeToExceptT err412 . MaybeT . Persist.withConn $ \conn ->
+      Persist.insertUnique conn newReview
+    score <- lift . Persist.withConn $ \conn -> do
+      s <- Persist.averageRating conn userIdToReview
+      void $ syncTaskToES conn taskId
+      pure s
+    void . lift $ ES.updateCreatorScore (fromSqlKey userIdToReview) score
+
+    pure NoContent
+  where
+    myId = toSqlKey (me ^. Common.user_id)
+    taskId = toSqlKey taskId'
+
+-- 获取参与该任务的另一方用户
+taskGetTheOtherUser :: Task -> UserId -> Maybe UserId
+taskGetTheOtherUser task me
+  | taskCreator task == me = taskTaker task
+  | taskTaker task == Just me = Just (taskCreator task)
+  | otherwise = Nothing

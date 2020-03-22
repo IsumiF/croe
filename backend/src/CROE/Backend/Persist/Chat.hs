@@ -13,8 +13,11 @@ import           CROE.Backend.Persist.Types
 import qualified CROE.Common.Chat              as Common
 import           CROE.Common.Util              (safeHead)
 import           Data.Bifunctor                (second)
+import           Data.Either                   (rights)
 import           Data.Functor                  (void)
 import           Data.String.Interpolate       (i)
+import           Data.Text                     (Text)
+import qualified Data.Text                     as T
 import           Data.Time
 import           Database.Persist.Sql          (Single, toPersistValue,
                                                 unSingle)
@@ -76,13 +79,15 @@ runChatRepo = interpret $ \case
     void $ rawExecuteCount conn
       [i|
       UPDATE chat_message
-      SET stat = ?
-      WHERE to = ? AND id IN (?)
+      SET `stat` = ?
+      WHERE `to` = ? AND `id` IN (#{marshalIds msgIds})
       |]
       [ toPersistValue status
       , toPersistValue toUser
-      , toPersistValue msgIds
       ]
 
 dropThird :: (a, b, c) -> (a, b)
 dropThird (x, y, _) = (x, y)
+
+marshalIds :: [ChatMessageId] -> Text
+marshalIds = T.intercalate "," . rights . fmap (fromPersistValueText . toPersistValue)

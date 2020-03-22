@@ -6,39 +6,50 @@ module CROE.Backend.Service.User
   , validateEmail
   ) where
 
+import           Control.Lens
 import           Control.Monad.Trans.Maybe
 import           Data.Coerce
-import           Data.Functor                    (void)
-import           Data.Text                       (Text)
-import qualified Data.Text                       as T
-import qualified Data.Text.Encoding              as T
-import           Database.Persist                (Entity (..), (=.), (==.))
+import           Data.Functor                             (void)
+import           Data.Text                                (Text)
+import qualified Data.Text                                as T
+import qualified Data.Text.Encoding                       as T
+import           Database.Persist                         (Entity (..), (=.),
+                                                           (==.))
 import           Polysemy
 import           Servant
 
 import           CROE.Backend.Clock.Class
 import           CROE.Backend.Logger.Class
-import qualified CROE.Backend.Mail.Class         as Mail
-import qualified CROE.Backend.Persist.Class      as Persist
+import qualified CROE.Backend.Mail.Class                  as Mail
+import qualified CROE.Backend.Persist.Class               as Persist
 import           CROE.Backend.Random.Class
 import           CROE.Backend.Service.Auth.Class
-import qualified CROE.Common.API.User            as Common
-import           CROE.Common.Util                (utf8LBS)
+import qualified CROE.Backend.Service.Elasticsearch.Class as ES
+import qualified CROE.Common.API.User                     as Common
+import           CROE.Common.Util                         (utf8LBS)
 
-putProfile :: Members [Persist.ConnectionPool, Persist.ReadEntity Persist.User, Persist.WriteEntity Persist.User] r
+putProfile :: Members [ Persist.ConnectionPool
+                      , Persist.ReadEntity Persist.User
+                      , Persist.WriteEntity Persist.User
+                      , AuthService
+                      , ES.Elasticsearch
+                      ] r
            => Common.User
-           -> Common.User
+           -> Common.PutProfileForm
            -> Sem r (Either ServerError NoContent)
-putProfile authUser newUser = do
-    Persist.withConn $ \conn ->
+putProfile authUser form = do
+    hashedPassword <- hashPassword . T.encodeUtf8 $ form ^. Common.putProfileForm_password
+    Persist.withConn $ \conn -> do
       Persist.updateWhere conn
         [ Persist.UserEmail ==. oldEmail]
-        [ Persist.UserEmail =. Common._user_email newUser
-        , Persist.UserName =. Common._user_name newUser
+        [ Persist.UserName =. newName
+        , Persist.UserHashedPassword =. hashedPassword
         ]
+      void $ ES.updateCreatorName (authUser ^. Common.user_id) newName
     pure (Right NoContent)
   where
     oldEmail = Common._user_email authUser
+    newName = form ^. Common.putProfileForm_name
 
 getProfile :: Common.User
            -> Sem r (Either ServerError Common.User)

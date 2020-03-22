@@ -12,6 +12,9 @@ module CROE.Common.API.Task
   , newTaskRequest_duration
   , newTaskRequest_abstract
   , newTaskRequest_description
+  , TaskAddReview(..)
+  , taskAddReview_score
+  , taskAddReview_reason
   , module CROE.Common.Task
   ) where
 
@@ -34,6 +37,7 @@ type API = "task" :>
   :<|> APIGet
   :<|> APISearch
   :<|> APIReindex
+  :<|> APIAddReview
   )
 
 -- |returns task id
@@ -56,6 +60,10 @@ type APISearch = "search" :> ReqBody '[JSON] TaskQueryCondition
 
 type APIReindex = "reindex" :> Post '[JSON] NoContent
 
+type APIAddReview = Capture "id" Int64 :> "review"
+  :> ReqBody '[JSON] TaskAddReview
+  :> Put '[JSON] NoContent
+
 data NewTaskRequest = NewTaskRequest
   { _newTaskRequest_title       :: Text
   , _newTaskRequest_reward      :: Word64
@@ -72,4 +80,17 @@ instance ToJSON NewTaskRequest where
   toJSON = genericToJSON aesonOptions
   toEncoding = genericToEncoding aesonOptions
 
+data TaskAddReview = TaskAddReview
+  { _taskAddReview_score  :: Double
+  , _taskAddReview_reason :: Text
+  } deriving (Show, Eq, Generic)
+
+instance FromJSON TaskAddReview where
+  parseJSON = genericParseJSON aesonOptions
+
+instance ToJSON TaskAddReview where
+  toJSON = genericToJSON aesonOptions
+  toEncoding = genericToEncoding aesonOptions
+
 makeLenses ''NewTaskRequest
+makeLenses ''TaskAddReview

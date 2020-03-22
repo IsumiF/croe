@@ -32,7 +32,7 @@ module CROE.Backend.Persist.Types
   , ChatMessageStatus(..)
   , EntityField(..)
   , migrateAll
-  , Unique(UniqueUserEmail)
+  , Unique(UniqueUserEmail, UniqueReviewFrom)
   ) where
 
 import           Data.Aeson
@@ -88,9 +88,11 @@ Task
   deriving Show
 Review
   user UserId
-  from UserId Maybe
+  from UserId
   rating Double
-  message Text Maybe
+  message Text
+  taskId TaskId
+  UniqueReviewFrom taskId from
   deriving Show
 ChatMessage
   from UserId

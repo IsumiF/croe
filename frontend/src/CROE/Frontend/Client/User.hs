@@ -35,7 +35,7 @@ data UserClient t m = UserClient
   }
 
 type PutProfile t m = Dynamic t (Maybe BasicAuthData)
-                   -> Dynamic t (Either Text User)
+                   -> Dynamic t (Either Text PutProfileForm)
                    -> Event t ()
                    -> m (Event t (ReqResult () NoContent))
 

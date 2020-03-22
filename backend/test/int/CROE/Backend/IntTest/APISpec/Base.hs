@@ -30,6 +30,7 @@ module CROE.Backend.IntTest.APISpec.Base
   , taskClient_getTask
   , taskClient_search
   , taskClient_reindex
+  , taskClient_addReview
   , SchoolClient(..)
   , schoolClient_get
   , ChatClient(..)
@@ -123,6 +124,7 @@ servantClient =
               :<|> _taskClient_getTask
               :<|> _taskClient_search
               :<|> _taskClient_reindex
+              :<|> _taskClient_addReview
               )
               :<|> _schoolClient_get
               :<|> (
@@ -148,7 +150,7 @@ data UserClient = UserClient
   { _userClient_applyCode     :: Maybe Text -> ClientM NoContent
   , _userClient_register      :: RegisterForm -> ClientM NoContent
   , _userClient_validateEmail :: EmailAddress -> ClientM Text
-  , _userClient_putProfile    :: BasicAuthData -> User -> ClientM NoContent
+  , _userClient_putProfile    :: BasicAuthData -> PutProfileForm -> ClientM NoContent
   , _userClient_getProfile    :: BasicAuthData -> ClientM User
   }
 
@@ -165,6 +167,7 @@ data TaskClient = TaskClient
   , _taskClient_getTask      :: Int64 -> ClientM TaskDetail
   , _taskClient_search       :: TaskQueryCondition -> ClientM TaskSearchResult
   , _taskClient_reindex      :: ClientM NoContent
+  , _taskClient_addReview    :: Int64 -> TaskAddReview -> ClientM NoContent
   }
 
 newtype SchoolClient = SchoolClient

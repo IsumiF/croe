@@ -38,6 +38,8 @@ import qualified CROE.Backend.Persist.Base                as Persist
 import           CROE.Backend.Persist.Chat                (ChatRepo,
                                                            runChatRepo)
 import qualified CROE.Backend.Persist.Class               as Persist
+import           CROE.Backend.Persist.Review              (ReviewRepo,
+                                                           runReviewRepo)
 import           CROE.Backend.Random.Base
 import qualified CROE.Backend.Redis.Base                  as Redis
 import qualified CROE.Backend.Redis.Class                 as Redis
@@ -96,6 +98,7 @@ type AppEffects =
   '[ ChatService
    , AuthService
    , ChatRepo
+   , ReviewRepo
    , Persist.ConnectionPool
    , Persist.Transactional
    , Persist.RawSqlRunner
@@ -132,6 +135,7 @@ runApp env@Env{..} app = app
     & runChatService
     & AuthService.runService _env_authService
     & runChatRepo
+    & runReviewRepo
     & Persist.runConnectionPool _env_persist
     & Persist.runTransactional
     & Persist.runRawSqlRunner

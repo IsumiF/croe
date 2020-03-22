@@ -60,6 +60,10 @@ data TaskClient t m = TaskClient
                        -> m (Event t (ReqResult () TaskSearchResult))
   , _taskClient_reindex :: Event t ()
                         -> m (Event t (ReqResult () NoContent))
+  , _taskClient_addReview :: Dynamic t (Either Text Int64)
+                          -> Dynamic t (Either Text TaskAddReview)
+                          -> Event t ()
+                          -> m (Event t (ReqResult () NoContent))
   }
 
 newtype SchoolClient t m = SchoolClient

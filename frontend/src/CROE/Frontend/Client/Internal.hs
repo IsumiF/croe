@@ -53,6 +53,7 @@ newClient (Config baseUrl) =
                 :<|> _taskClient_get
                 :<|> _taskClient_search
                 :<|> _taskClient_reindex
+                :<|> _taskClient_addReview
                 )
                 :<|> _schoolClient_get
                 :<|> (

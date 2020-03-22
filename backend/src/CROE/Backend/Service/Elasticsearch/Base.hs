@@ -7,14 +7,16 @@ module CROE.Backend.Service.Elasticsearch.Base
   ) where
 
 import           Control.Exception
-import           Control.Lens
-import           Data.Aeson                               hiding ((.=))
+import           Control.Lens                             hiding ((.=))
+import           Data.Aeson
 import qualified Data.Aeson                               as Aeson
 import           Data.Aeson.Types                         (Pair)
 import           Data.Coerce
+import           Data.Int
 import           Data.Proxy                               (Proxy)
 import           Data.String.Interpolate
 import           Data.Text                                (Text)
+import qualified Data.Text                                as T
 import qualified Data.Text.Encoding                       as T
 import           GHC.Generics                             (Generic)
 import           Network.HTTP.Req
@@ -41,6 +43,10 @@ runElasticsearch config = interpret $ \case
   SearchTask condition -> searchTaskImpl config condition
   PutTask docId task -> putTaskImpl config docId task
   UpdateTaskStatus docId taskStatus -> updateTaskStatusImpl config docId taskStatus
+  UpdateCreatorName creatorId creatorName ->
+    updateByQuery config creatorId "creatorName" (toJSON creatorName)
+  UpdateCreatorScore creatorId creatorScore ->
+    updateByQuery config creatorId "creatorScore" (toJSON creatorScore)
 
 reqOptions :: Config -> Option 'Http
 reqOptions config = port port' <> basicAuthUnsafe (T.encodeUtf8 username) (T.encodeUtf8 password)
@@ -188,6 +194,7 @@ taskToDoc task = object
     , "campusId" Aeson..= (task ^. task_campusId)
     , "takerId" Aeson..= (task ^. task_takerId)
     , "status" Aeson..= (task ^. task_status)
+    , "reviewedByUsers" Aeson..= (task ^. task_reviewedByUsers)
     ]
 
 data Range a = Range
@@ -212,6 +219,7 @@ instance FromJSON TaskDoc where
     _task_campusId <- o .: "campusId"
     _task_takerId <- o .: "takerId"
     _task_status <- o .: "status"
+    _task_reviewedByUsers <- o .: "reviewedByUsers"
     pure . TaskDoc $ Task{..}
 
 queryConditionToEsJson :: TaskQueryCondition -> Value
@@ -231,12 +239,14 @@ queryConditionToEsJson queryCondition = object
       <> queryConditionRanges queryCondition
 
 strQueryToEsJson :: Text -> Pair
-strQueryToEsJson strQuery =
-    "multi_match" Aeson..= object
-      [ "query" Aeson..= strQuery
-      , "fields" Aeson..= (["title^3", "abstract"] :: [Text])
-      , "type" Aeson..= ("most_fields" :: Text)
-      ]
+strQueryToEsJson strQuery
+    | T.null strQuery = "match_all" Aeson..= object []
+    | otherwise =
+        "multi_match" Aeson..= object
+          [ "query" Aeson..= strQuery
+          , "fields" Aeson..= (["title^3", "abstract"] :: [Text])
+          , "type" Aeson..= ("most_fields" :: Text)
+          ]
 
 queryConditionTerms :: TaskQueryCondition -> [(Text, Value)]
 queryConditionTerms TaskQueryCondition{..} = filterJustSnd
@@ -274,3 +284,43 @@ queryConditionRanges queryCondition =
         ]
   where
     rewardRange = queryCondition ^. taskQueryCondition_rewardRange
+
+updateByQuery :: Members '[Embed IO, Logger] r
+              => Config
+              -> Int64 -- ^creator id
+              -> Text -- ^field name
+              -> Value -- ^field new value
+              -> Sem r Bool
+updateByQuery config@(Config host _ _ _ indexPrefix) creatorId fieldName fieldNewValue = do
+    respEither <- embed $ try $ runReq defaultHttpConfig $
+      req POST
+        (http host /: (indexPrefix <> "task") /: "_update_by_query")
+        (ReqBodyJson body)
+        ignoreResponse
+        (reqOptions config <> "conflicts" =: ("proceed" :: Text))
+    case respEither of
+      Left (e :: HttpException) -> do
+        printLogt LevelError [i|es update by query failed with exception #{e}|]
+        pure False
+      Right resp -> do
+        let httpStatus = responseStatusCode resp
+        if not (statusIsSuccess httpStatus)
+        then do
+          printLogt LevelError [i|es search failed with http status #{httpStatus}|]
+          pure False
+        else pure True
+  where
+    body = object
+      [ "script" .= object
+          [ "lang" .= ("painless" :: Text)
+          , "source" .= ([i|ctx._source.#{fieldName} = params.#{fieldName}|] :: Text)
+          , "params" .= object
+              [ fieldName .= fieldNewValue
+              ]
+          ]
+      , "query" .= object
+          [ "term" .= object
+              [ "creatorId" .= creatorId
+              ]
+          ]
+      ]
