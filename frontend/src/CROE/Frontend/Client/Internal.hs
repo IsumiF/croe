@@ -38,7 +38,8 @@ makeLenses ''Client
 
 newClient :: forall t m. MonadWidget t m => Config -> Client t m
 newClient (Config baseUrl) =
-    let ((userProtected :<|> _applyCode :<|> _register :<|> _validateEmail)
+    let _chatClient_baseUrl = baseUrl
+        ((userProtected :<|> _applyCode :<|> _register :<|> _validateEmail)
           :<|> protected) =
           client (Proxy :: Proxy API) (Proxy :: Proxy m) (Proxy :: Proxy ())
             (constDyn baseUrl)
@@ -63,6 +64,7 @@ newClient (Config baseUrl) =
                   :<|> _chatClient_markAsRead
                 )
                   = protected user
+              _chatClient_authData = user
               _protectedClient_task = TaskClient{..}
               _protectedClient_school = SchoolClient{..}
               _protectedClient_chat = ChatClient{..}

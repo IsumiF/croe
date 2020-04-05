@@ -2,8 +2,39 @@
   position: fixed;
   right: 3em;
   bottom: 3em;
+  z-index: 100;
 }
 
 .chatbox {
+  margin-bottom: 1em;
+}
+
+.contact-list > {
+  display: flex;
+  flex-direction: column;
+
+  div:first-of-type {
+    flex-grow: 1;
+  }
+}
+
+.chatbox-message-area > div:first-of-type {
+  max-height: 20em;
+  overflow-y: scroll;
+  max-width: 20em;
+  margin-bottom: 0.5em;
+}
+
+.message-left {
+  padding-right: 3em;
+}
+
+.message-right {
+  @extend .message-left;
+  text-align: right;
+}
+
+.chatbox-show-more-message {
+  text-align: center;
   margin-bottom: 1em;
 }

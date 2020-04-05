@@ -21,7 +21,7 @@ navbarWidget =
                   elClass "i" "fas fa-2x fa-user-circle" blank
               divClass "dropdown-menu" $
                 divClass "dropdown-content" $ do
-                  (myProfileEvt, _) <- linkButton ("class" =: "dropdown-item") $ text "我的资料"
+                  (myProfileEvt, _) <- linkButton ("class" =: "dropdown-item") $ text "修改资料"
                   divClass "dropdown-divider" blank
                   (logoutEvt, _) <- linkButton ("class" =: "dropdown-item") $ text "退出登陆"
                   pure ()

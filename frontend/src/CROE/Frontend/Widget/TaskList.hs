@@ -30,8 +30,9 @@ import           CROE.Common.API.Task
 import           CROE.Common.School
 import           CROE.Common.User
 import           CROE.Common.Util                       (readt, readtMaybe,
-                                                         safeHead, showt)
+                                                         safeHead, showt, divUpper)
 import           CROE.Frontend.Client
+import           CROE.Frontend.Widget.Chat              (chatWidget)
 import           CROE.Frontend.Widget.Navbar            (navbarWidget)
 import           CROE.Frontend.Widget.Pagination
 import           CROE.Frontend.Widget.TaskList.ViewTask
@@ -48,6 +49,7 @@ taskListWidget :: forall t m. MonadWidget t m
                -> ProtectedClient t m
                -> m ()
 taskListWidget user protectedClient = mdo
+    chatWidget chatClient
     navbarWidget
     (newTaskEvt, viewTaskEvt) <- showWidget isViewListDyn $ elClass "section" "section" $
       divClass "container" $
@@ -138,12 +140,7 @@ taskListWidget user protectedClient = mdo
     schoolClient = protectedClient ^. protectedClient_school
     taskClient = protectedClient ^. protectedClient_task
     searchTask = taskClient ^. taskClient_search
-
-divUpper :: Integral a => a -> a -> a
-divUpper x y =
-    if x `mod` y == 0
-    then x `div` y
-    else x `div` y + 1
+    chatClient = protectedClient ^. protectedClient_chat
 
 makeTaskQueryCondition :: Text -- ^query string
                        -> Maybe Int64 -- ^creator id

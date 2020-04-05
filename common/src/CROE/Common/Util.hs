@@ -7,6 +7,7 @@ module CROE.Common.Util
   , readtMaybe
   , safeHead
   , liftBool
+  , divUpper
   ) where
 
 import           Control.Monad.Trans.Class
@@ -50,3 +51,9 @@ liftBool m = do
     if ok
     then pure ()
     else MaybeT (pure Nothing)
+
+divUpper :: Integral a => a -> a -> a
+divUpper x y =
+    if x `mod` y == 0
+    then x `div` y
+    else x `div` y + 1

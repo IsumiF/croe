@@ -21,6 +21,21 @@
     .chatbox {
       margin-bottom: 1em;
     }
+
+    .contact-list {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .contact-list>div:first-of-type {
+      flex-grow: 1;
+    }
+
+    .chatbox-message-area>div:first-of-type {
+      max-height: 20em;
+      overflow-y: scroll;
+      margin-bottom: 0.5em;
+    }
   </style>
 </head>
 
@@ -29,21 +44,20 @@
     <div class="chatbox card">
       <div class="card-content">
         <div class="columns">
-          <div class="column is-narrow" style="display: flex; flex-direction: column;">
-            <div class="menu" style="flex-grow: 1;">
+          <div class="contact-list column is-narrow">
+            <div class="menu">
               <ul class="menu-list">
-                <li><a class="is-active has-badge-rounded has-badge-danger has-badge-medium"
-                    data-badge="3">fzl(fengzlin@mail2.sysu.edu.cn)</a></li>
-                <li><a>isumi(steven172307@gmail.com)</a></li>
+                <li style="margin-bottom: 1.5em;"><a class="is-active">fzl(fengzlin@mail2.sysu.edu.cn)</a></li>
+                <li><a class="has-badge-rounded has-badge-danger has-badge-medium" data-badge="2">isumi(steven172307@gmail.com)</a></li>
               </ul>
             </div>
             <div>
               <nav class="pagination is-small" role="navigation" aria-label="pagination">
                 <ul class="pagination-list">
                   <li>
-                    <a class="pagination-link" aria-label="Goto page 1">1</a>
+                    <a class="pagination-link is-current" aria-label="Goto page 1">1</a>
                   </li>
-                  <li>
+                  <!-- <li>
                     <span class="pagination-ellipsis">&hellip;</span>
                   </li>
                   <li>
@@ -60,13 +74,13 @@
                   </li>
                   <li>
                     <a class="pagination-link" aria-label="Goto page 86">86</a>
-                  </li>
+                  </li> -->
                 </ul>
               </nav>
             </div>
           </div>
           <div class="is-divider-vertical"></div>
-          <div class="column" style="max-height: 20em; overflow-y: scroll;">
+          <div class="chatbox-message-area column">
             <div style="max-width: 20em;">
               <div style="text-align: center; margin-bottom: 1em;">
                 <button class="button is-small">显示更多</button>
@@ -96,11 +110,14 @@
                 嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯 嗯嗯
               </p>
             </div>
+            <div>
+              <input class="input" type="text">
+            </div>
           </div>
         </div>
       </div>
     </div>
-    <button class="button is-info is-pulled-right has-badge-rounded has-badge-danger has-badge-large" data-badge="8">
+    <button class="button is-info is-pulled-right has-badge-rounded has-badge-danger has-badge-large" data-badge="2">
       <p>
         聊天室
       </p>
@@ -108,7 +125,8 @@
         <i class="fas fa-caret-up"></i>
       </span> -->
       <span class="icon is-right">
-        <i class="fas fa-caret-down"></i>
+        <i class="is-hidden fas fa-caret-down"></i>
+        <i class="fas fa-caret-up"></i>
       </span>
     </button>
   </div>

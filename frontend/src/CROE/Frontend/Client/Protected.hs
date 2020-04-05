@@ -13,9 +13,12 @@ module CROE.Frontend.Client.Protected
   , taskClient_get
   , taskClient_search
   , taskClient_reindex
+  , taskClient_addReview
   , SchoolClient(..)
   , schoolClient_get
   , ChatClient(..)
+  , chatClient_baseUrl
+  , chatClient_authData
   , chatClient_messages
   , chatClient_contactList
   , chatClient_totalUnreadCount
@@ -72,7 +75,9 @@ newtype SchoolClient t m = SchoolClient
   }
 
 data ChatClient t m = ChatClient
-  { _chatClient_messages :: Dynamic t (QParam Int64) -- from user id
+  { _chatClient_baseUrl :: BaseUrl
+  , _chatClient_authData :: Dynamic t (Maybe BasicAuthData)
+  , _chatClient_messages :: Dynamic t (QParam Int64) -- from user id
                          -> Dynamic t (QParam Int) -- limit
                          -> Dynamic t (QParam Int) -- offset
                          -> Event t ()

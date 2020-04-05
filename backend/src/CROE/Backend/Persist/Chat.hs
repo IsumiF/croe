@@ -45,11 +45,12 @@ runChatRepo = interpret $ \case
   ContactList conn userId limit offset -> do
     totalSingle <- rawSql conn
       [i|
-        SELECT COUNT(DISTINCT `from`)
+        SELECT COUNT(DISTINCT user.id)
         FROM chat_message
-        WHERE chat_message.`from` = ? OR chat_message.`to` = ?
+        INNER JOIN user ON user.id = chat_message.`from` OR user.id = chat_message.`to`
+        WHERE (chat_message.`from` = ? OR chat_message.`to` = ?) AND user.id <> ?
       |]
-      [ toPersistValue userId, toPersistValue userId
+      [ toPersistValue userId, toPersistValue userId, toPersistValue userId
       ]
     let total = maybe 0 unSingle (safeHead totalSingle)
     result :: [(Entity User, Single Int, Single UTCTime)] <- rawSql conn
@@ -58,8 +59,8 @@ runChatRepo = interpret $ \case
           SUM(IF(stat = ? AND chat_message.`to` = ?, 1, 0)) AS cnt,
           MAX(chat_message.time) AS max_time
         FROM chat_message
-        INNER JOIN user ON user.id = chat_message.`from` AND chat_message.`from` <> ?
-        WHERE chat_message.`from` = ? OR chat_message.to = ?
+        INNER JOIN user ON user.id = chat_message.`from` OR user.id = chat_message.`to`
+        WHERE (chat_message.`from` = ? OR chat_message.to = ?) AND user.id <> ?
         GROUP BY user.id
         ORDER BY cnt DESC, max_time DESC
         LIMIT ?

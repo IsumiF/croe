@@ -8,6 +8,7 @@ module CROE.Frontend.Widget.Pagination
   , PaginationConfig
   , paginationConfig_total
   , paginationConfig_size
+  , PaginationSize(..)
   , Pagination
   , pagination_current
   ) where
