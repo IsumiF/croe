@@ -1,0 +1,19 @@
+version: '3.7'
+
+services:
+  croe:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile
+      args:
+        http_proxy: ${http_proxy}
+        https_proxy: ${https_proxy}
+    image: zelinf/croe
+    command: bash
+    stdin_open: true
+    tty: true
+    volumes:
+      - ../:/root/croe/
+    environment:
+      http_proxy: ${http_proxy}
+      https_proxy: ${https_proxy}
